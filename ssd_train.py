@@ -2,9 +2,14 @@ import time
 import torch.backends.cudnn as cudnn
 import torch.optim
 import torch.utils.data
-from model import SSD300, MultiBoxLoss
-from dataset import HITUAVDataset
-from utils import *
+from ssd_model import SSD300, MultiBoxLoss
+from dataset import HITUAVDatasetTest, HITUAVDatasetTrain, HITUAVDatasetVal
+from ssd_utils import *
+
+from tqdm import tqdm
+from pprint import PrettyPrinter
+
+pp = PrettyPrinter()
 
 # Data parameters
 data_folder = './'  # folder with data files
@@ -21,7 +26,7 @@ batch_size = 8  # batch size
 iterations = 120000  # number of iterations to train
 workers = 4  # number of workers for loading data in the DataLoader
 print_freq = 2  # print training status every __ batches
-lr = 1e-3  # learning rate
+lr = 5e-4  # learning rate
 decay_lr_at = [80000, 100000]  # decay learning rate after these many iterations
 decay_lr_to = 0.1  # decay learning rate to this fraction of the existing learning rate
 momentum = 0.9  # momentum
@@ -65,9 +70,19 @@ def main():
     criterion = MultiBoxLoss(priors_cxcy=model.priors_cxcy).to(device)
 
     # Custom dataloaders
-    train_dataset = HITUAVDataset(data_folder)
+    train_dataset = HITUAVDatasetTrain(data_folder)
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True,
                                                collate_fn=train_dataset.collate_fn, num_workers=workers,
+                                               pin_memory=True)  # note that we're passing the collate function here
+    
+    val_dataset = HITUAVDatasetVal(data_folder)
+    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=True,
+                                               collate_fn=val_dataset.collate_fn, num_workers=workers,
+                                               pin_memory=True)  # note that we're passing the collate function here
+    
+    test_dataset = HITUAVDatasetTest(data_folder)
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True,
+                                               collate_fn=test_dataset.collate_fn, num_workers=workers,
                                                pin_memory=True)  # note that we're passing the collate function here
 
     # Calculate total number of epochs to train and the epochs to decay learning rate at (i.e. convert iterations to epochs)
@@ -92,6 +107,8 @@ def main():
 
         # Save checkpoint
         save_checkpoint(epoch, model, optimizer)
+
+        evaluate(test_loader=val_loader, model=model)
 
 
 def train(train_loader, model, criterion, optimizer, epoch):
@@ -152,6 +169,57 @@ def train(train_loader, model, criterion, optimizer, epoch):
                                                                   data_time=data_time, loss=losses))
     del predicted_locs, predicted_scores, images, boxes, labels  # free some memory since their histories may be stored
 
+def evaluate(test_loader, model):
+    """
+    Evaluate.
+    :param test_loader: DataLoader for test data
+    :param model: model
+    """
+
+    # Make sure it's in eval mode
+    model.eval()
+
+    # Lists to store detected and true boxes, labels, scores
+    det_boxes = list()
+    det_labels = list()
+    det_scores = list()
+    true_boxes = list()
+    true_labels = list()
+    true_difficulties = list()  # it is necessary to know which objects are 'difficult', see 'calculate_mAP' in utils.py
+
+    with torch.no_grad():
+        # Batches
+        for i, (images, boxes, labels) in enumerate(tqdm(test_loader, desc='Evaluating')):
+            images = images.to(device)  # (N, 3, 300, 300)
+
+            # Forward prop.
+            predicted_locs, predicted_scores = model(images)
+
+            # Detect objects in SSD output
+            det_boxes_batch, det_labels_batch, det_scores_batch = model.detect_objects(predicted_locs, predicted_scores,
+                                                                                       min_score=0.01, max_overlap=0.45,
+                                                                                       top_k=200)
+            # Evaluation MUST be at min_score=0.01, max_overlap=0.45, top_k=200 for fair comparision with the paper's results and other repos
+
+            # Store this batch's results for mAP calculation
+            boxes = [b.to(device) for b in boxes]
+            labels = [l.to(device) for l in labels]
+            difficulties = [torch.zeros_like(x).to(device) for x in labels]
+
+            det_boxes.extend(det_boxes_batch)
+            det_labels.extend(det_labels_batch)
+            det_scores.extend(det_scores_batch)
+            true_boxes.extend(boxes)
+            true_labels.extend(labels)
+            true_difficulties.extend(difficulties)
+
+        # Calculate mAP
+        APs, mAP = calculate_mAP(det_boxes, det_labels, det_scores, true_boxes, true_labels, true_difficulties)
+
+    # Print AP for each class
+    pp.pprint(APs)
+
+    print('\nMean Average Precision (mAP): %.3f' % mAP)
 
 if __name__ == '__main__':
     main()
