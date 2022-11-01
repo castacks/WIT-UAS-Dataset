@@ -20,7 +20,7 @@ n_classes = len(label_map)  # number of different types of objects
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Learning parameters
-checkpoint = 'checkpoint_ssd300.pth.tar'  # path to model checkpoint, None if none
+checkpoint = 'checkpoint_ssd300_state_dict.pt'  # path to model checkpoint, None if none
 batch_size = 8  # batch size
 iterations = 120000  # number of iterations to train
 workers = 4  # number of workers for loading data in the DataLoader
@@ -42,27 +42,26 @@ def main():
     global start_epoch, label_map, epoch, checkpoint, decay_lr_at
 
     # Initialize model or load checkpoint
-    if checkpoint is None:
-        start_epoch = 0
-        model = SSD300(n_classes=n_classes)
-        # Initialize the optimizer, with twice the default learning rate for biases, as in the original Caffe repo
-        biases = list()
-        not_biases = list()
-        for param_name, param in model.named_parameters():
-            if param.requires_grad:
-                if param_name.endswith('.bias'):
-                    biases.append(param)
-                else:
-                    not_biases.append(param)
-        optimizer = torch.optim.SGD(params=[{'params': biases, 'lr': 2 * lr}, {'params': not_biases}],
-                                    lr=lr, momentum=momentum, weight_decay=weight_decay)
+    start_epoch = 0
+    model = SSD300(n_classes=n_classes)
+    # Initialize the optimizer, with twice the default learning rate for biases, as in the original Caffe repo
+    biases = list()
+    not_biases = list()
+    for param_name, param in model.named_parameters():
+        if param.requires_grad:
+            if param_name.endswith('.bias'):
+                biases.append(param)
+            else:
+                not_biases.append(param)
+    optimizer = torch.optim.SGD(params=[{'params': biases, 'lr': 2 * lr}, {'params': not_biases}],
+                                lr=lr, momentum=momentum, weight_decay=weight_decay)
 
-    else:
+    if checkpoint is not None:
         checkpoint = torch.load(checkpoint)
         start_epoch = checkpoint['epoch'] + 1
         print('\nLoaded checkpoint from epoch %d.\n' % start_epoch)
-        model = checkpoint['model']
-        optimizer = checkpoint['optimizer']
+        model.load_state_dict(checkpoint['model'])
+        optimizer.load_state_dict(checkpoint['optimizer'])
 
     # Move to default device
     model = model.to(device)
