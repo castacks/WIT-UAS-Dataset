@@ -1,4 +1,5 @@
 import torch
+import os
 
 hit_labels = ('person', 'car', 'bicycle', 'othervehicle', 'dontcare', 'noobject')
 label_map = {k: v + 1 for v, k in enumerate(hit_labels)}
@@ -120,7 +121,7 @@ def adjust_learning_rate(optimizer, scale):
         param_group['lr'] = param_group['lr'] * scale
     print("DECAYING learning rate.\n The new LR is %f\n" % (optimizer.param_groups[1]['lr'],))
 
-def save_checkpoint(epoch, model, optimizer):
+def save_checkpoint(epoch, model, optimizer, logdir):
     """
     Save model checkpoint.
     :param epoch: epoch number
@@ -128,10 +129,10 @@ def save_checkpoint(epoch, model, optimizer):
     :param optimizer: optimizer
     """
     state = {'epoch': epoch,
-             'model': model,
-             'optimizer': optimizer}
-    filename = 'checkpoint_ssd300.pth.tar'
-    torch.save(state, filename)
+             'model': model.state_dict(),
+             'optimizer': optimizer.state_dict()}
+    filename = 'checkpoint_ssd300_state_dict.pt'
+    torch.save(state, os.path.join(logdir, str(epoch) + '_' + filename))
 
 def calculate_mAP(det_boxes, det_labels, det_scores, true_boxes, true_labels, true_difficulties):
     """

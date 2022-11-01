@@ -9,11 +9,15 @@ from ssd_utils import *
 from tqdm import tqdm
 from pprint import PrettyPrinter
 
+from logger import Logger
+
 pp = PrettyPrinter()
 
 # Data parameters
 data_folder = './'  # folder with data files
 keep_difficult = True  # use objects considered difficult to detect?
+logdir = "ssd_logs"
+logger = Logger(logdir)  # Tensorboard logger
 
 # Model parameters
 # Not too many here since the SSD300 has a very specific structure
@@ -106,7 +110,7 @@ def main():
               epoch=epoch)
 
         # Save checkpoint
-        save_checkpoint(epoch, model, optimizer)
+        save_checkpoint(epoch, model, optimizer, logger.log_dir)
 
         evaluate(test_loader=val_loader, model=model)
 
@@ -130,6 +134,8 @@ def train(train_loader, model, criterion, optimizer, epoch):
 
     # Batches
     for i, (images, boxes, labels) in enumerate(train_loader):
+        batches_done = len(train_loader) * epoch + i
+
         data_time.update(time.time() - start)
 
         # Move to default device
@@ -167,7 +173,16 @@ def train(train_loader, model, criterion, optimizer, epoch):
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'.format(epoch, i, len(train_loader),
                                                                   batch_time=batch_time,
                                                                   data_time=data_time, loss=losses))
+        
+            # Tensorboard logging
+            tensorboard_log = [
+                ("train/loss", to_cpu(loss).item())]
+            logger.list_of_scalars_summary(tensorboard_log, batches_done)
+    
     del predicted_locs, predicted_scores, images, boxes, labels  # free some memory since their histories may be stored
+
+def to_cpu(tensor):
+    return tensor.detach().cpu()
 
 def evaluate(test_loader, model):
     """
@@ -220,6 +235,10 @@ def evaluate(test_loader, model):
     pp.pprint(APs)
 
     print('\nMean Average Precision (mAP): %.3f' % mAP)
+
+    evaluation_metrics = [
+        ("validation/mAP", mAP)]
+    logger.list_of_scalars_summary(evaluation_metrics, epoch)
 
 if __name__ == '__main__':
     main()

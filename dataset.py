@@ -41,10 +41,16 @@ class HITUAVDatasetTrain(torch.utils.data.Dataset):
             bboxes_list.append(bbox)
             labels_list.append(object['category_id'] + 1)
         if len(bboxes_list) == 0 and len(labels_list) == 0:
-            bbox = [0, 0, 640, 512]
-            label = 6
-            bboxes_list.append(bbox)
-            labels_list.append(label)
+            if self.yolo == False:
+                bbox = [0, 0, 640, 512]
+                label = 6
+                bboxes_list.append(bbox)
+                labels_list.append(label)
+            else:
+                bbox = [0, 0, 1, 1]
+                label = 5
+                bboxes_list.append(bbox)
+                labels_list.append(label)
         if self.yolo == False:
             boxes = torch.FloatTensor(bboxes_list)
             labels = torch.LongTensor(labels_list)
@@ -162,10 +168,16 @@ class HITUAVDatasetVal(torch.utils.data.Dataset):
             bboxes_list.append(bbox)
             labels_list.append(object['category_id'] + 1)
         if len(bboxes_list) == 0 and len(labels_list) == 0:
-            bbox = [0, 0, 640, 512]
-            label = 6
-            bboxes_list.append(bbox)
-            labels_list.append(label)
+            if self.yolo == False:
+                bbox = [0, 0, 640, 512]
+                label = 6
+                bboxes_list.append(bbox)
+                labels_list.append(label)
+            else:
+                bbox = [0, 0, 1, 1]
+                label = 5
+                bboxes_list.append(bbox)
+                labels_list.append(label)
         if self.yolo == False:
             boxes = torch.FloatTensor(bboxes_list)
             labels = torch.LongTensor(labels_list)
@@ -283,10 +295,16 @@ class HITUAVDatasetTest(torch.utils.data.Dataset):
             bboxes_list.append(bbox)
             labels_list.append(object['category_id'] + 1)
         if len(bboxes_list) == 0 and len(labels_list) == 0:
-            bbox = [0, 0, 640, 512]
-            label = 6
-            bboxes_list.append(bbox)
-            labels_list.append(label)
+            if self.yolo == False:
+                bbox = [0, 0, 640, 512]
+                label = 6
+                bboxes_list.append(bbox)
+                labels_list.append(label)
+            else:
+                bbox = [0, 0, 1, 1]
+                label = 5
+                bboxes_list.append(bbox)
+                labels_list.append(label)
         if self.yolo == False:
             boxes = torch.FloatTensor(bboxes_list)
             labels = torch.LongTensor(labels_list)

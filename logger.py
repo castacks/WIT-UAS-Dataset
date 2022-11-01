@@ -11,6 +11,7 @@ class Logger(object):
                 log_dir,
                 datetime.datetime.now().strftime("%Y_%m_%d__%H_%M_%S"))
         self.writer = SummaryWriter(log_dir)
+        self.log_dir = log_dir
 
     def scalar_summary(self, tag, value, step):
         """Log a scalar variable."""
