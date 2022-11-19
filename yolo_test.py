@@ -42,7 +42,11 @@ def evaluate_model_file(model_path, weights_path, img_path, class_names, batch_s
     :type verbose: bool, optional
     :return: Returns precision, recall, AP, f1, ap_class
     """
-    dataloader = _create_validation_data_loader()
+    workers = 4  # number of workers for loading data in the DataLoader
+    val_dataset = HITUAVDatasetTest(img_path, yolo=True)
+    dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=True,
+                                               collate_fn=val_dataset.yolo_collate_fn, num_workers=workers,
+                                               pin_memory=True)  # note that we're passing the collate function here
     model = load_model(model_path, weights_path)
     metrics_output = _evaluate(
         model,
@@ -150,9 +154,9 @@ def _create_validation_data_loader(data_folder = './', batch_size = 8, workers =
 def run():
     print_environment_info()
     parser = argparse.ArgumentParser(description="Evaluate validation data.")
-    parser.add_argument("-m", "--model", type=str, default="config/yolov3.cfg", help="Path to model definition file (.cfg)")
-    parser.add_argument("-w", "--weights", type=str, default="weights/yolov3.weights", help="Path to weights or checkpoint file (.weights or .pth)")
-    parser.add_argument("-d", "--data", type=str, default="config/coco.data", help="Path to data config file (.data)")
+    parser.add_argument("-m", "--model", type=str, default="yolov3-custom.cfg", help="Path to model definition file (.cfg)")
+    parser.add_argument("-w", "--weights", type=str, default="yolo_logs/2022_11_01__01_56_27/yolov3_ckpt_900.pth", help="Path to weights or checkpoint file (.weights or .pth)")
+    parser.add_argument("-d", "--data", type=str, default="hit.data", help="Path to data config file (.data)")
     parser.add_argument("-b", "--batch_size", type=int, default=8, help="Size of each image batch")
     parser.add_argument("-v", "--verbose", action='store_true', help="Makes the validation more verbose")
     parser.add_argument("--img_size", type=int, default=416, help="Size of each image dimension for yolo")
@@ -166,7 +170,7 @@ def run():
     # Load configuration from data file
     data_config = parse_data_config(args.data)
     # Path to file containing all images for validation
-    valid_path = data_config["valid"]
+    valid_path = './'
     class_names = load_classes(data_config["names"])  # List of class names
 
     precision, recall, AP, f1, ap_class = evaluate_model_file(
@@ -181,6 +185,7 @@ def run():
         conf_thres=args.conf_thres,
         nms_thres=args.nms_thres,
         verbose=True)
+    print(AP.mean())
 
 
 if __name__ == "__main__":

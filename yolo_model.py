@@ -310,7 +310,8 @@ def load_model(model_path, weights_path=None):
     if weights_path:
         if weights_path.endswith(".pth"):
             # Load checkpoint weights
-            model.load_state_dict(torch.load(weights_path, map_location=device))
+            checkpoint = torch.load(weights_path, map_location=device)
+            model.load_state_dict(checkpoint['model'])
         else:
             # Load darknet weights
             model.load_darknet_weights(weights_path)

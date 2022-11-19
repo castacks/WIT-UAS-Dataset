@@ -20,7 +20,7 @@ n_classes = len(label_map)  # number of different types of objects
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Learning parameters
-checkpoint = 'checkpoint_ssd300_state_dict.pt'  # path to model checkpoint, None if none
+checkpoint = './ssd_logs/2022_11_01__22_35_59/950_checkpoint_ssd300_state_dict.pt'  # path to model checkpoint, None if none
 batch_size = 8  # batch size
 iterations = 120000  # number of iterations to train
 workers = 4  # number of workers for loading data in the DataLoader

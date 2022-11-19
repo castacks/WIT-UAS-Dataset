@@ -27,15 +27,18 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # Learning parameters
 checkpoint = None  # path to model checkpoint, None if none
 batch_size = 8  # batch size
-iterations = 120000  # number of iterations to train
+iterations = 60000  # number of iterations to train
 workers = 4  # number of workers for loading data in the DataLoader
-print_freq = 2  # print training status every __ batches
+print_freq = 200  # print training status every __ batches
 lr = 5e-4  # learning rate
 decay_lr_at = [80000, 100000]  # decay learning rate after these many iterations
 decay_lr_to = 0.1  # decay learning rate to this fraction of the existing learning rate
 momentum = 0.9  # momentum
 weight_decay = 5e-4  # weight decay
 grad_clip = None  # clip if gradients are exploding, which may happen at larger batch sizes (sometimes at 32) - you will recognize it by a sorting error in the MuliBox loss calculation
+
+evaluation_interval = 10
+checkpoint_interval = 10
 
 cudnn.benchmark = True
 
@@ -110,9 +113,11 @@ def main():
               epoch=epoch)
 
         # Save checkpoint
-        save_checkpoint(epoch, model, optimizer, logger.log_dir)
+        if epoch % checkpoint_interval == 0:
+            save_checkpoint(epoch, model, optimizer, logger.log_dir)
 
-        evaluate(test_loader=val_loader, model=model)
+        if epoch % evaluation_interval == 0:
+            evaluate(test_loader=val_loader, model=model)
 
 
 def train(train_loader, model, criterion, optimizer, epoch):
@@ -174,10 +179,10 @@ def train(train_loader, model, criterion, optimizer, epoch):
                                                                   batch_time=batch_time,
                                                                   data_time=data_time, loss=losses))
         
-            # Tensorboard logging
-            tensorboard_log = [
-                ("train/loss", to_cpu(loss).item())]
-            logger.list_of_scalars_summary(tensorboard_log, batches_done)
+    # Tensorboard logging
+    tensorboard_log = [
+        ("train/loss", to_cpu(loss).item())]
+    logger.list_of_scalars_summary(tensorboard_log, batches_done)
     
     del predicted_locs, predicted_scores, images, boxes, labels  # free some memory since their histories may be stored
 
