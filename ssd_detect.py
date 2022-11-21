@@ -38,7 +38,7 @@ normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225])
 
 
-def detect(original_image, min_score, max_overlap, top_k, suppress=None):
+def detect(original_image, min_score, max_overlap, top_k, suppress=None, gen_trace=True):
     """
     Detect objects in an image with a trained SSD300, and visualize the results.
     :param original_image: image, a PIL Image
@@ -59,6 +59,11 @@ def detect(original_image, min_score, max_overlap, top_k, suppress=None):
     image = image.to(device)
 
     # Forward prop.
+    if gen_trace == True:
+        traced_script_module = torch.jit.trace(model, image.unsqueeze(0))
+        traced_script_module.save("traced_ssd_model.torchscript")
+        return
+    
     predicted_locs, predicted_scores = model(image.unsqueeze(0))
 
     # Detect objects in SSD output
@@ -120,4 +125,4 @@ if __name__ == '__main__':
     img_path = os.path.join('./', "HIT-UAV-Infrared-Thermal-Dataset/normal_json/val/1_60_50_0_00281.jpg")
     original_image = Image.open(img_path, mode='r')
     original_image = original_image.convert('RGB')
-    detect(original_image, min_score=0.2, max_overlap=0.5, top_k=200).show()
+    detect(original_image, min_score=0.2, max_overlap=0.5, top_k=200)#.show()
