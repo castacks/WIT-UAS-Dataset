@@ -1,2 +1,7 @@
 10701_env/
 __pycache__/
+
+**/yolo_logs
+**/output
+**/checkpoints
+.vscode

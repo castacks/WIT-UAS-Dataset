@@ -21,6 +21,8 @@ from torchsummary import summary
 
 from dataset import HITUAVDatasetTrain, HITUAVDatasetVal
 
+import wandb_logger
+
 
 def run():
     print_environment_info()
@@ -29,18 +31,22 @@ def run():
     parser.add_argument("-d", "--data", type=str, default="hit.data", help="Path to data config file (.data)")
     parser.add_argument("-e", "--epochs", type=int, default=900, help="Number of epochs")
     parser.add_argument("-v", "--verbose", default=False, action='store_true', help="Makes the training more verbose")
-    parser.add_argument("--n_cpu", type=int, default=8, help="Number of cpu threads to use during batch generation")
-    parser.add_argument("--pretrained_weights", type=str, help="Path to checkpoint file (.weights or .pth). Starts training from checkpoint model")
-    parser.add_argument("--checkpoint_interval", type=int, default=10, help="Interval of epochs between saving model weights")
-    parser.add_argument("--evaluation_interval", type=int, default=1, help="Interval of epochs between evaluations on validation set")
-    parser.add_argument("--multiscale_training", action="store_true", help="Allow multi-scale training")
-    parser.add_argument("--iou_thres", type=float, default=0.5, help="Evaluation: IOU threshold required to qualify as detected")
-    parser.add_argument("--conf_thres", type=float, default=0.1, help="Evaluation: Object confidence threshold")
-    parser.add_argument("--nms_thres", type=float, default=0.5, help="Evaluation: IOU threshold for non-maximum suppression")
+    parser.add_argument("--n-cpu", type=int, default=8, help="Number of cpu threads to use during batch generation")
+    parser.add_argument("--pretrained-weights", type=str, help="Path to checkpoint file (.weights or .pth). Starts training from checkpoint model")
+    parser.add_argument("--checkpoint-interval", type=int, default=10, help="Interval of epochs between saving model weights")
+    parser.add_argument("--evaluation-interval", type=int, default=1, help="Interval of epochs between evaluations on validation set")
+    parser.add_argument("--multiscale-training", action="store_true", help="Allow multi-scale training")
+    parser.add_argument("--iou-thres", type=float, default=0.5, help="Evaluation: IOU threshold required to qualify as detected")
+    parser.add_argument("--conf-thres", type=float, default=0.1, help="Evaluation: Object confidence threshold")
+    parser.add_argument("--nms-thres", type=float, default=0.5, help="Evaluation: IOU threshold for non-maximum suppression")
     parser.add_argument("--logdir", type=str, default="yolo_logs", help="Directory for training log files (e.g. for TensorBoard)")
     parser.add_argument("--seed", type=int, default=-1, help="Makes results reproducable. Set -1 to disable.")
+    parser.add_argument("--batch-size", type=int, default=5, help="set batch size of training, depends on your GPU memory capacity")
     args = parser.parse_args()
     print(f"Command line arguments: {args}")
+
+    wandb_logger.init(config=args) #! batch-size, lr, epochs, dataset
+    wandb_logger.set_config(config={"model architecture": "YOLO"})
 
     if args.seed != -1:
         provide_determinism(args.seed)
@@ -63,6 +69,8 @@ def run():
     # ############
 
     model = load_model(args.model, args.pretrained_weights)
+
+    wandb_logger.set_config(config={"learning rate": model.hyperparams['learning_rate']}) #! \learning rate
 
     # Print model
     if args.verbose:
@@ -89,7 +97,7 @@ def run():
     #     model.hyperparams['height'],
     #     args.n_cpu)
     data_folder = './'  # folder with data files
-    batch_size = 8  # batch size
+    batch_size = args.batch_size  # batch size
     workers = 4  # number of workers for loading data in the DataLoader
     train_dataset = HITUAVDatasetTrain(data_folder, yolo=True)
     dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True,
@@ -97,7 +105,7 @@ def run():
                                                pin_memory=True)  # note that we're passing the collate function here
     
     val_dataset = HITUAVDatasetVal(data_folder, yolo=True)
-    validation_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=True,
+    validation_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False,
                                                collate_fn=val_dataset.yolo_collate_fn, num_workers=workers,
                                                pin_memory=True)  # note that we're passing the collate function here
 
@@ -125,7 +133,7 @@ def run():
     # skip epoch zero, because then the calculations for when to evaluate/checkpoint makes more intuitive sense
     # e.g. when you stop after 30 epochs and evaluate every 10 epochs then the evaluations happen after: 10,20,30
     # instead of: 0, 10, 20
-    for epoch in range(1, args.epochs+1):
+    for epoch in range(1, args.epochs + 1):
 
         print("\n---- Training Model ----")
 
@@ -223,7 +231,8 @@ def run():
                 iou_thres=args.iou_thres,
                 conf_thres=args.conf_thres,
                 nms_thres=args.nms_thres,
-                verbose=args.verbose
+                verbose=args.verbose,
+                epoch=epoch
             )
 
             if metrics_output is not None:

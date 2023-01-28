@@ -3,6 +3,7 @@ from __future__ import division
 import argparse
 import tqdm
 import numpy as np
+import wandb_logger
 
 from terminaltables import AsciiTable
 
@@ -74,7 +75,7 @@ def print_eval_stats(metrics_output, class_names, verbose):
         print("---- mAP not measured (no detections found by model) ----")
 
 
-def _evaluate(model, dataloader, class_names, img_size, iou_thres, conf_thres, nms_thres, verbose):
+def _evaluate(model, dataloader, class_names, img_size, iou_thres, conf_thres, nms_thres, verbose, epoch):
     """Evaluate model on validation dataset.
     :param model: Model to evaluate
     :type model: models.Darknet
@@ -100,7 +101,7 @@ def _evaluate(model, dataloader, class_names, img_size, iou_thres, conf_thres, n
 
     labels = []
     sample_metrics = []  # List of tuples (TP, confs, pred)
-    for imgs, targets in tqdm.tqdm(dataloader, desc="Validating"):
+    for batch_i, (imgs, targets) in enumerate(tqdm.tqdm(dataloader, desc="Validating")):
         # Extract labels
         labels += targets[:, 1].tolist()
         # Rescale target
@@ -114,6 +115,12 @@ def _evaluate(model, dataloader, class_names, img_size, iou_thres, conf_thres, n
             outputs = non_max_suppression(outputs, conf_thres=conf_thres, iou_thres=nms_thres)
 
         sample_metrics += get_batch_statistics(outputs, targets, iou_threshold=iou_thres)
+
+        wandb_logger.log_batch(images=imgs,
+                               predictions=outputs,
+                               ground_truths=targets,
+                               batch_name="Training epoch" + epoch + " evaluation batch " + batch_i,
+                               class_id_to_label=dict((id, name) for id, name in enumerate(class_names)))
 
     if len(sample_metrics) == 0:  # No detections over whole validation set.
         print("---- No detections over whole validation set ----")
