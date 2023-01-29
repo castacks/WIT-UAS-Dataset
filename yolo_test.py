@@ -119,7 +119,7 @@ def _evaluate(model, dataloader, class_names, img_size, iou_thres, conf_thres, n
         wandb_logger.log_batch(images=imgs,
                                predictions=outputs,
                                ground_truths=targets,
-                               batch_name="Training epoch" + epoch + " evaluation batch " + batch_i,
+                               batch_name="training epoch " + str(epoch) + " evaluation batch " + str(batch_i),
                                class_id_to_label=dict((id, name) for id, name in enumerate(class_names)))
 
     if len(sample_metrics) == 0:  # No detections over whole validation set.

@@ -149,6 +149,8 @@ def run():
 
             loss, loss_components = compute_loss(outputs, targets, model)
 
+            wandb_logger.log({("epoch " + str(epoch) + " loss"): loss})
+
             loss.backward()
 
             ###############

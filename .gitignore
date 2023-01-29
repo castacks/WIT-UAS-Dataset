@@ -1,6 +1,7 @@
 10701_env/
 __pycache__/
 
+wandb
 **/yolo_logs
 **/output
 **/checkpoints
