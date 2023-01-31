@@ -45,9 +45,6 @@ def run():
     args = parser.parse_args()
     print(f"Command line arguments: {args}")
 
-    wandb_logger.init(config=args) #! batch-size, lr, epochs, dataset
-    wandb_logger.set_config(config={"model architecture": "YOLO"})
-
     if args.seed != -1:
         provide_determinism(args.seed)
 
@@ -70,7 +67,9 @@ def run():
 
     model = load_model(args.model, args.pretrained_weights)
 
-    wandb_logger.set_config(config={"learning rate": model.hyperparams['learning_rate']}) #! \learning rate
+    wandb_logger.init(config=args) # batch-size, lr, epochs, dataset
+    wandb_logger.set_config(config={"model architecture": "YOLO",
+                                    "learning rate": model.hyperparams['learning_rate']}) # learning rate
 
     # Print model
     if args.verbose:
@@ -139,6 +138,8 @@ def run():
 
         model.train()  # Set model to training mode
 
+        metrics = {"losses": [], "IoU_losses": [], "object_losses": [],"class_losses": []}
+
         for batch_i, (imgs, targets) in enumerate(tqdm.tqdm(dataloader, desc=f"Training Epoch {epoch}")):
             batches_done = len(dataloader) * epoch + batch_i
 
@@ -148,8 +149,6 @@ def run():
             outputs = model(imgs)
 
             loss, loss_components = compute_loss(outputs, targets, model)
-
-            wandb_logger.log({("epoch " + str(epoch) + " loss"): loss})
 
             loss.backward()
 
@@ -204,6 +203,17 @@ def run():
 
             model.seen += imgs.size(0)
 
+            metrics["losses"].append(loss)
+            metrics["IoU_losses"].append(loss_components[0])
+            metrics["object_losses"].append(loss_components[1])
+            metrics["class_losses"].append(loss_components[2])
+
+        wandb_logger.log({"train/loss": sum(metrics["losses"])/len(metrics["losses"]),
+                          "train/IoU_loss": sum(metrics["IoU_losses"])/len(metrics["IoU_losses"]),
+                          "train/object_loss": sum(metrics["object_losses"])/len(metrics["object_losses"]),
+                          "train/class_loss": sum(metrics["class_losses"])/len(metrics["class_losses"]),
+                          "epoch": epoch})
+
         # #############
         # Save progress
         # #############
@@ -245,6 +255,12 @@ def run():
                     ("validation/mAP", AP.mean()),
                     ("validation/f1", f1.mean())]
                 logger.list_of_scalars_summary(evaluation_metrics, epoch)
+
+                wandb_logger.log({"eval/precision": precision.mean,
+                                  "eval/recall": recall.mean(),
+                                  "eval/mAP": AP.mean(),
+                                  "eval/f1": f1.mean(),
+                                  "epoch": epoch})
 
 
 if __name__ == "__main__":

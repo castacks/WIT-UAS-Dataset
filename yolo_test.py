@@ -101,6 +101,7 @@ def _evaluate(model, dataloader, class_names, img_size, iou_thres, conf_thres, n
 
     labels = []
     sample_metrics = []  # List of tuples (TP, confs, pred)
+    image_list = [] # for wandb slider visualization
     for batch_i, (imgs, targets) in enumerate(tqdm.tqdm(dataloader, desc="Validating")):
         # Extract labels
         labels += targets[:, 1].tolist()
@@ -116,11 +117,16 @@ def _evaluate(model, dataloader, class_names, img_size, iou_thres, conf_thres, n
 
         sample_metrics += get_batch_statistics(outputs, targets, iou_threshold=iou_thres)
 
-        wandb_logger.log_batch(images=imgs,
+        wandb_logger.add_batch(images=imgs,
                                predictions=outputs,
                                ground_truths=targets,
-                               batch_name="training epoch " + str(epoch) + " evaluation batch " + str(batch_i),
-                               class_id_to_label=dict((id, name) for id, name in enumerate(class_names)))
+                               epoch=epoch,
+                               num_batch=batch_i,
+                               class_id_to_label=dict((id, name) for id, name in enumerate(class_names)),
+                               image_list=image_list)
+    
+    wandb_logger.log({"eval/images": image_list,
+                      "epoch": epoch})
 
     if len(sample_metrics) == 0:  # No detections over whole validation set.
         print("---- No detections over whole validation set ----")
