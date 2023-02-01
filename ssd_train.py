@@ -10,6 +10,7 @@ from tqdm import tqdm
 from pprint import PrettyPrinter
 
 from logger import Logger
+import wandb_logger
 
 pp = PrettyPrinter()
 
@@ -26,7 +27,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Learning parameters
 checkpoint = None  # path to model checkpoint, None if none
-batch_size = 8  # batch size
+batch_size = 14  # batch size
 iterations = 60000  # number of iterations to train
 workers = 4  # number of workers for loading data in the DataLoader
 print_freq = 200  # print training status every __ batches
@@ -98,6 +99,14 @@ def main():
     epochs = iterations // (len(train_dataset) // 32)
     decay_lr_at = [it // (len(train_dataset) // 32) for it in decay_lr_at]
 
+    wandb_logger.init(config={"model architecture": "SSD",
+                              "batch size": batch_size,
+                              "epoch": epochs,
+                              "learning rate": lr,
+                              "momentum": momentum,
+                              "weight decay": weight_decay,
+                              "data": "HIT"})
+
     # Epochs
     for epoch in range(start_epoch, epochs):
 
@@ -138,7 +147,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
     start = time.time()
 
     # Batches
-    for i, (images, boxes, labels) in enumerate(train_loader):
+    for i, (images, boxes, labels) in enumerate(tqdm(train_loader, desc="training")):
         batches_done = len(train_loader) * epoch + i
 
         data_time.update(time.time() - start)
@@ -183,6 +192,9 @@ def train(train_loader, model, criterion, optimizer, epoch):
     tensorboard_log = [
         ("train/loss", to_cpu(loss).item())]
     logger.list_of_scalars_summary(tensorboard_log, batches_done)
+
+    wandb_logger.log({"train/loss": to_cpu(loss).item(),
+                      "epoch": epoch})
     
     del predicted_locs, predicted_scores, images, boxes, labels  # free some memory since their histories may be stored
 
@@ -206,6 +218,7 @@ def evaluate(test_loader, model):
     true_boxes = list()
     true_labels = list()
     true_difficulties = list()  # it is necessary to know which objects are 'difficult', see 'calculate_mAP' in utils.py
+    image_list = [] # for wandb slider visualization
 
     with torch.no_grad():
         # Batches
@@ -233,6 +246,12 @@ def evaluate(test_loader, model):
             true_labels.extend(labels)
             true_difficulties.extend(difficulties)
 
+            wandb_logger.add_batch(images=images,
+                                   predictions=[torch.cat([box, score.reshape(-1, 1), label.reshape(-1, 1)], dim=1) for (box, score, label) in zip(det_boxes_batch, det_scores_batch, det_labels_batch)], # each box: [x1, y1, x2, y2, prediction_score, label]
+                                   ground_truths=[torch.cat([label.reshape(-1, 1), box], dim=1) for (label, box) in zip(labels, boxes)], # each box: [label, x1, y1, x2, y2]
+                                   class_id_to_label={id: name for name, id in label_map.items()},
+                                   image_list=image_list) # add batch to image list before bulk upload
+
         # Calculate mAP
         APs, mAP = calculate_mAP(det_boxes, det_labels, det_scores, true_boxes, true_labels, true_difficulties)
 
@@ -244,6 +263,10 @@ def evaluate(test_loader, model):
     evaluation_metrics = [
         ("validation/mAP", mAP)]
     logger.list_of_scalars_summary(evaluation_metrics, epoch)
+
+    wandb_logger.log({"eval/mAP": mAP,
+                      "eval/images": image_list,
+                      "epoch": epoch})
 
 if __name__ == '__main__':
     main()

@@ -1,8 +1,9 @@
 10701_env/
 __pycache__/
 
-wandb
+wandb/
 **/yolo_logs
 **/output
 **/checkpoints
+**/ssd_logs
 .vscode

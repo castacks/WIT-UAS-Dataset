@@ -256,7 +256,7 @@ def run():
                     ("validation/f1", f1.mean())]
                 logger.list_of_scalars_summary(evaluation_metrics, epoch)
 
-                wandb_logger.log({"eval/precision": precision.mean,
+                wandb_logger.log({"eval/precision": precision.mean(),
                                   "eval/recall": recall.mean(),
                                   "eval/mAP": AP.mean(),
                                   "eval/f1": f1.mean(),

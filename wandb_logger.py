@@ -1,5 +1,6 @@
 import wandb
 import torch
+from datetime import datetime
 
 PROJECT_NAME = "HIT-Object-Detection"
 WANDB_ENTITY = "cmu-ri-wildfire"
@@ -7,9 +8,15 @@ BATCH_INTERVAL = 2
 
 
 def init(config=None):
+    """init wandb logger, sets train and eval blobs hooked to epoch as x-axis
+
+    Args:
+        config (dict, optional): settings to upload. Defaults to None.
+    """
     wandb.init(project=PROJECT_NAME,
                entity=WANDB_ENTITY,
-               config=config)
+               config=config,
+               name=str(datetime.now()))
 
     # define plot x-axis and variables
     wandb.define_metric("epoch")  # x-axis
@@ -18,14 +25,35 @@ def init(config=None):
 
 
 def set_config(config):
+    """set config incrementally any time
+
+    Args:
+        config (dict): add anything as config in format {name(str): info(str, number_like), ...}
+    """
     wandb.config.update(config)
 
 
 def log(data):
+    """log any info any time incrementally, mostly when training
+
+    Args:
+        data (dict): log anything in format {name(str): info(str, number_like), ...}
+    """
     wandb.log(data)
 
 
 def draw_boxes(image, prediction, ground_truth, class_id_to_label: dict):
+    """draw predicted and ground truth boxes on given image and produce a wandb image object
+
+    Args:
+        image (image): image from dataset
+        prediction (list_like): list containing predictions of boxes over the entire image in format [x1, y1, x2, y2, prediction_score, label]
+        ground_truth (list_like): list containing ground truth boxes over the entire image in format [label, x1, y1, x2, y2], from dataset 
+        class_id_to_label (dict): dictionary mapping from id(int starting from 0) to name(str), e.g. {0: car, 1: people}
+
+    Returns:
+        wandb_image(wandb.Image): 1 single wandb image object
+    """
     wandb_image = wandb.Image(image, boxes={
         "predictions": {  # predicted box: [x1, y1, x2, y2, prediction_score, label]
             "box_data": [{"position": {"minX": box[0].item(),
@@ -34,8 +62,7 @@ def draw_boxes(image, prediction, ground_truth, class_id_to_label: dict):
                                        "maxY": box[3].item()},
                           "domain": "pixel",
                           "class_id": int(box[-1].item()),
-                          "color": [0, 0, 255],
-                          "box_caption": str(class_id_to_label[box[-1].item()]) + "_pred",
+                          "box_caption": str(class_id_to_label[int(box[-1].item())]) + "_pred",
                           "scores": {"prediction score": box[4].item()}} for box in prediction],
             "class_labels": class_id_to_label
         },
@@ -46,8 +73,7 @@ def draw_boxes(image, prediction, ground_truth, class_id_to_label: dict):
                                        "maxY": box[4].item()},
                           "domain": "pixel",
                           "class_id": int(box[0].item()),
-                          "color": [255, 0, 0],
-                          "box_caption": str(class_id_to_label[box[0].item()]) + "_gt"} for box in ground_truth],
+                          "box_caption": str(class_id_to_label[int(box[0].item())]) + "_gt"} for box in ground_truth],
             "class_labels": class_id_to_label
         }
     })
@@ -55,12 +81,20 @@ def draw_boxes(image, prediction, ground_truth, class_id_to_label: dict):
     return wandb_image
 
 
-def add_batch(images, predictions, ground_truths, epoch, num_batch, class_id_to_label, image_list=None):
+def add_batch(images, predictions, ground_truths, class_id_to_label: dict, image_list=None):
+    """add wandb image objects to given image_list
+
+    Args:
+        images (image): a batch of images from dataset
+        predictions (list_like): a batch of predictions on given images in dimension [n_images, n_predicted_boxes]
+        ground_truths (list_like): a batch of ground truth of given images from dataset in dimension [n_images, n_gound_truth_boxes]
+        class_id_to_label (dict): dictionary mapping from id(int starting from 0) to name(str), e.g. {0: car, 1: people}
+        image_list (list_like, optional): list of wandb image objects of this whole epoch to be uploaded. Defaults to None.
+    """
     #! batch size is small (5 for now), so only logging first image of each batch
     wandb_image = draw_boxes(image=images[0],
                              prediction=predictions[0],
-                             ground_truth=ground_truths[ground_truths[:, 0]
-                                                        == 0][:, 1:],
+                             ground_truth=ground_truths[0],
                              class_id_to_label=class_id_to_label)
 
     image_list.append(wandb_image)

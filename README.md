@@ -1,26 +1,39 @@
 # HIT Object Detection
 
-## Install
+## Configure Environment
 
-Install the required libraries and packages using pip as shown below.
+1. Install **Anaconda** following the [**official guide**](https://docs.anaconda.com/anaconda/install/index.html).
+
+1. Create environment for **HIT**:
+
+    ```shell
+    conda env create -f environment.yml
+    ```
+
+1. Activate **HIT**:
+
+    ```shell
+    conda activate HIT
+    ```
+
+1. Login to your [wandb account](https://wandb.ai/site) locally:
+
+    ```shell
+    wandb login
+    ```
+
+## Run training on HIT dataset
+
+Training can be started using the ```yolo_train.py``` or ```ssd_train.py```:
 
 ```shell
-pip install -r requirements.txt
+python yolo_train.py
 ```
 
-Next, install PyTorch using the appropriate pip command from [the official guide](https://pytorch.org/get-started/locally/).
-An example of this would be the command shown below.
+or
 
 ```shell
-pip3 install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu116
+python ssd_train.py
 ```
 
-## Run training for SSD on HIT dataset
-
-Training can be started using the ```train.py``` script as shown below.
-
-```shell
-python train.py
-```
-
-There are a few parameters that can be changed at the top of the ```train.py``` script.
+You may need to adjust the batch size according to your GPU memory.

@@ -119,11 +119,9 @@ def _evaluate(model, dataloader, class_names, img_size, iou_thres, conf_thres, n
 
         wandb_logger.add_batch(images=imgs,
                                predictions=outputs,
-                               ground_truths=targets,
-                               epoch=epoch,
-                               num_batch=batch_i,
-                               class_id_to_label=dict((id, name) for id, name in enumerate(class_names)),
-                               image_list=image_list)
+                               ground_truths=[targets[targets[:, 0] == image_index][:, 1:] for image_index in range(int(targets[0, 0]), int(targets[-1, 0] + 1))], # change to list of tensor each contain boxes of its image
+                               class_id_to_label={id: name for id, name in enumerate(class_names)},
+                               image_list=image_list) # add batch to image list before bulk upload
     
     wandb_logger.log({"eval/images": image_list,
                       "epoch": epoch})
