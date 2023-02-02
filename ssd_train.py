@@ -84,7 +84,7 @@ def main():
                                                pin_memory=True)  # note that we're passing the collate function here
     
     val_dataset = HITUAVDatasetVal(data_folder)
-    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=True,
+    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False,
                                                collate_fn=val_dataset.collate_fn, num_workers=workers,
                                                pin_memory=True)  # note that we're passing the collate function here
     

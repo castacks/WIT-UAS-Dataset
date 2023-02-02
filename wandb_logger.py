@@ -42,7 +42,7 @@ def log(data):
     wandb.log(data)
 
 
-def draw_boxes(image, prediction, ground_truth, class_id_to_label: dict):
+def draw_boxes(image, prediction, ground_truth, class_id_to_label: dict, box_unit=None):
     """draw predicted and ground truth boxes on given image and produce a wandb image object
 
     Args:
@@ -50,6 +50,7 @@ def draw_boxes(image, prediction, ground_truth, class_id_to_label: dict):
         prediction (list_like): list containing predictions of boxes over the entire image in format [x1, y1, x2, y2, prediction_score, label]
         ground_truth (list_like): list containing ground truth boxes over the entire image in format [label, x1, y1, x2, y2], from dataset 
         class_id_to_label (dict): dictionary mapping from id(int starting from 0) to name(str), e.g. {0: car, 1: people}
+        box_unit (str, optional): unit of box corner coordinates, specify as "pixel" if pixel. Defaults to None, which is fraction.
 
     Returns:
         wandb_image(wandb.Image): 1 single wandb image object
@@ -60,7 +61,7 @@ def draw_boxes(image, prediction, ground_truth, class_id_to_label: dict):
                                        "maxX": box[2].item(),
                                        "minY": box[1].item(),
                                        "maxY": box[3].item()},
-                          "domain": "pixel",
+                          "domain": box_unit,
                           "class_id": int(box[-1].item()),
                           "box_caption": str(class_id_to_label[int(box[-1].item())]) + "_pred",
                           "scores": {"prediction score": box[4].item()}} for box in prediction],
@@ -71,7 +72,7 @@ def draw_boxes(image, prediction, ground_truth, class_id_to_label: dict):
                                        "maxX": box[3].item(),
                                        "minY": box[2].item(),
                                        "maxY": box[4].item()},
-                          "domain": "pixel",
+                          "domain": box_unit,
                           "class_id": int(box[0].item()),
                           "box_caption": str(class_id_to_label[int(box[0].item())]) + "_gt"} for box in ground_truth],
             "class_labels": class_id_to_label
@@ -81,7 +82,7 @@ def draw_boxes(image, prediction, ground_truth, class_id_to_label: dict):
     return wandb_image
 
 
-def add_batch(images, predictions, ground_truths, class_id_to_label: dict, image_list=None):
+def add_batch(images, predictions, ground_truths, class_id_to_label: dict, image_list=None, box_unit=None):
     """add wandb image objects to given image_list
 
     Args:
@@ -90,11 +91,13 @@ def add_batch(images, predictions, ground_truths, class_id_to_label: dict, image
         ground_truths (list_like): a batch of ground truth of given images from dataset in dimension [n_images, n_gound_truth_boxes]
         class_id_to_label (dict): dictionary mapping from id(int starting from 0) to name(str), e.g. {0: car, 1: people}
         image_list (list_like, optional): list of wandb image objects of this whole epoch to be uploaded. Defaults to None.
+        box_unit (str, optional): unit of box corner coordinates, specify as "pixel" if pixel. Defaults to None, which is fraction.
     """
     #! batch size is small (5 for now), so only logging first image of each batch
     wandb_image = draw_boxes(image=images[0],
                              prediction=predictions[0],
                              ground_truth=ground_truths[0],
-                             class_id_to_label=class_id_to_label)
+                             class_id_to_label=class_id_to_label,
+                             box_unit=box_unit)
 
     image_list.append(wandb_image)

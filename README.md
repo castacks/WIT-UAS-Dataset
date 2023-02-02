@@ -22,6 +22,8 @@
     wandb login
     ```
 
+Send an email to [Mukai (Tom Notch) Yu](mailto:mukaiy@andrew.cmu.edu) if you are not invited to team *cmu-ri-wildfire*.
+
 ## Run training on HIT dataset
 
 Training can be started using the ```yolo_train.py``` or ```ssd_train.py```:
