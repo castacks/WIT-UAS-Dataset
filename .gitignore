@@ -1,6 +1,7 @@
 10701_env/
 __pycache__/
 
+**/WIT-UAV-Dataset
 **/wandb
 **/yolo_logs
 **/output
