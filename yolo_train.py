@@ -19,7 +19,7 @@ from terminaltables import AsciiTable
 
 from torchsummary import summary
 
-from dataset import HITUAVDatasetTrain, HITUAVDatasetVal
+from dataset import HITUAVDatasetTrain, HITUAVDatasetVal, WITUAVDataset
 
 import wandb_logger
 
@@ -28,7 +28,7 @@ def run():
     print_environment_info()
     parser = argparse.ArgumentParser(description="Trains the YOLO model.")
     parser.add_argument("-m", "--model", type=str, default="yolov3-custom.cfg", help="Path to model definition file (.cfg)")
-    parser.add_argument("-d", "--data", type=str, default="hit.data", help="Path to data config file (.data)")
+    parser.add_argument("-d", "--data", type=str, default="wit.data", help="Path to data config file (.data)")
     parser.add_argument("-e", "--epochs", type=int, default=900, help="Number of epochs")
     parser.add_argument("-v", "--verbose", default=False, action='store_true', help="Makes the training more verbose")
     parser.add_argument("--n-cpu", type=int, default=8, help="Number of cpu threads to use during batch generation")
@@ -41,7 +41,7 @@ def run():
     parser.add_argument("--nms-thres", type=float, default=0.5, help="Evaluation: IOU threshold for non-maximum suppression")
     parser.add_argument("--logdir", type=str, default="yolo_logs", help="Directory for training log files (e.g. for TensorBoard)")
     parser.add_argument("--seed", type=int, default=-1, help="Makes results reproducable. Set -1 to disable.")
-    parser.add_argument("--batch-size", type=int, default=5, help="set batch size of training, depends on your GPU memory capacity")
+    parser.add_argument("--batch-size", type=int, default=2, help="set batch size of training, depends on your GPU memory capacity")
     args = parser.parse_args()
     print(f"Command line arguments: {args}")
 
@@ -95,15 +95,19 @@ def run():
     #     mini_batch_size,
     #     model.hyperparams['height'],
     #     args.n_cpu)
-    data_folder = './'  # folder with data files
+    if args.data == "hit.data":
+        data_folder = './'  # folder with data files
+        train_dataset = HITUAVDatasetTrain(data_folder, yolo=True)
+        val_dataset = HITUAVDatasetVal(data_folder, yolo=True)
+    elif args.data == "wit.data":
+        train_dataset = WITUAVDataset(root="./WIT-UAV-Dataset/train/", yolo=True)
+        val_dataset = WITUAVDataset(root="./WIT-UAV-Dataset/val/", yolo=True)
+
     batch_size = args.batch_size  # batch size
     workers = 4  # number of workers for loading data in the DataLoader
-    train_dataset = HITUAVDatasetTrain(data_folder, yolo=True)
     dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True,
                                                collate_fn=train_dataset.yolo_collate_fn, num_workers=workers,
                                                pin_memory=True)  # note that we're passing the collate function here
-    
-    val_dataset = HITUAVDatasetVal(data_folder, yolo=True)
     validation_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False,
                                                collate_fn=val_dataset.yolo_collate_fn, num_workers=workers,
                                                pin_memory=True)  # note that we're passing the collate function here
