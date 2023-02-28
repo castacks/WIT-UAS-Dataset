@@ -7,7 +7,7 @@ import numpy as np
 import torchvision.transforms as transforms
 
 class HITUAVDatasetTrain(torch.utils.data.Dataset):
-    def __init__(self, root, yolo=False, yolo_dim=[416, 416]):
+    def __init__(self, root, yolo=False, yolo_dim=[416, 416], image_transform=None):
         self.yolo = yolo
         self.yolo_dim = yolo_dim
         self.root = root
@@ -17,6 +17,8 @@ class HITUAVDatasetTrain(torch.utils.data.Dataset):
         self.annotations_json = json.load(open(self.annotations_file))
         self.annotations_bbox_category = self.annotations_json['annotation']
         self.imgs_train_name_ids = self.annotations_json['images']
+
+        self.image_transform = image_transform
     
     def __len__(self):
         return len(self.imgs_train_list)
@@ -40,18 +42,30 @@ class HITUAVDatasetTrain(torch.utils.data.Dataset):
                 bbox = [bbox[0]/640, bbox[1]/512, bbox[2]/640, bbox[3]/512]
             bboxes_list.append(bbox)
             labels_list.append(object['category_id'] + 1)
+
+        # transforms
+        # print(f"Pre transform {bboxes_list=}")
+        if self.image_transform:
+            transformed = self.image_transform(image=np.array(image), bboxes = bboxes_list, labels = labels_list)
+            image = Image.fromarray(transformed["image"])
+            bboxes_list = transformed["bboxes"]
+            labels_list = transformed["labels"]
+        # print(f"Post transform {bboxes_list=}")
+
         if len(bboxes_list) == 0 and len(labels_list) == 0:
-            if self.yolo == False:
+            if self.yolo == False:  # SSD
                 bbox = [0, 0, 640, 512]
-                label = 6
+                label = 6  # nothing
                 bboxes_list.append(bbox)
                 labels_list.append(label)
-            else:
+            else: # YOLO
                 bbox = [0, 0, 1, 1]
                 label = 5
                 bboxes_list.append(bbox)
                 labels_list.append(label)
-        if self.yolo == False:
+
+    
+        if self.yolo == False:  # SSD
             boxes = torch.FloatTensor(bboxes_list)
             labels = torch.LongTensor(labels_list)
             image, boxes = self.resize(image, boxes)
@@ -60,7 +74,7 @@ class HITUAVDatasetTrain(torch.utils.data.Dataset):
             std = [0.229, 0.224, 0.225]
             image = FT.normalize(image, mean=mean, std=std)
             return image, boxes, labels
-        else:
+        else:  # YOLO
             np_targets = []
             for b, l in zip(bboxes_list, labels_list):
                 np_targets.append([l] + b)
@@ -157,13 +171,13 @@ class HITUAVDatasetVal(torch.utils.data.Dataset):
         labels_list = []
         for object in objects_dict:
             bbox = object['bbox']
-            if self.yolo == False:
+            if self.yolo == False: # SSD
                 xmin = (bbox[0] - bbox[2]/2) if (bbox[0] - bbox[2]/2)/640 >= 0 else 0
                 ymin = (bbox[1] - bbox[3]/2) if (bbox[1] - bbox[3]/2)/512 >= 0 else 0
                 xmax = (bbox[0] + bbox[2]/2) if (bbox[0] + bbox[2]/2)/640 <= 1 else 640
                 ymax = (bbox[1] + bbox[3]/2) if (bbox[1] + bbox[3]/2)/512 <= 1 else 512
                 bbox = [xmin, ymin, xmax, ymax]
-            else:
+            else: # YOLO, normalize coordinates
                 bbox = [bbox[0]/640, bbox[1]/512, bbox[2]/640, bbox[3]/512]
             bboxes_list.append(bbox)
             labels_list.append(object['category_id'] + 1)

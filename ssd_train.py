@@ -12,6 +12,29 @@ from pprint import PrettyPrinter
 from logger import Logger
 import wandb_logger
 
+
+from collections import defaultdict
+import copy
+import random
+import os
+import shutil
+from urllib.request import urlretrieve
+
+import albumentations as A
+from albumentations.pytorch import ToTensorV2
+import cv2
+import matplotlib.pyplot as plt
+from tqdm import tqdm
+import torch
+import torch.backends.cudnn as cudnn
+import torch.nn as nn
+import torch.optim
+from torch.utils.data import Dataset, DataLoader
+import torchvision.models as models
+
+cudnn.benchmark = True
+
+
 pp = PrettyPrinter()
 
 # Data parameters
@@ -27,9 +50,9 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Learning parameters
 checkpoint = None  # path to model checkpoint, None if none
-batch_size = 14  # batch size
+batch_size = 20  # batch size
 iterations = 60000  # number of iterations to train
-workers = 4  # number of workers for loading data in the DataLoader
+workers = 12  # number of workers for loading data in the DataLoader
 print_freq = 200  # print training status every __ batches
 lr = 5e-4  # learning rate
 decay_lr_at = [80000, 100000]  # decay learning rate after these many iterations
@@ -78,7 +101,39 @@ def main():
     criterion = MultiBoxLoss(priors_cxcy=model.priors_cxcy).to(device)
 
     # Custom dataloaders
-    train_dataset = HITUAVDatasetTrain(data_folder)
+
+    image_transforms = A.Compose([
+            # Randomly rotate the image and bounding boxes
+            A.RandomRotate90(),
+            # Randomly flip the image and bounding boxes horizontally
+            A.HorizontalFlip(p=0.5),
+            # Randomly flip the image and bounding boxes vertically
+            A.VerticalFlip(p=0.5),
+            # Apply a color jitter to the image
+            A.ColorJitter(p=0.5),
+            # Apply CLAHE to the image
+            A.CLAHE(clip_limit=(1,4), p=0.5),
+            # Add random noise to the image
+            A.GaussNoise(var_limit=(10.0, 50.0), p=0.5),
+            # Add a grid of lines to the image
+            A.GridDistortion(p=0.5),
+            # Randomly change brightness, contrast and saturation
+            A.RandomBrightnessContrast(p=0.5),
+            A.RandomGamma(p=0.5),
+            A.HueSaturationValue(p=0.5),
+            # Add a black rectangle to the image
+            A.RandomShadow(p=0.5, num_shadows_lower=1, num_shadows_upper=3, shadow_dimension=3),
+            A.RandomResizedCrop(height=300, width=300, scale=(0.8, 1.0), ratio=(0.75, 1.3333333333333333), p=1.0),
+            A.Perspective(),
+        ], 
+        # HIT dataset is in unnormalized YOLO format, which is x_center, y_center, width, height.
+        # however for SSD it transforms it to pascal_voc format
+        bbox_params=A.BboxParams(format='pascal_voc', label_fields=['labels'])
+    )
+
+
+
+    train_dataset = HITUAVDatasetTrain(data_folder, image_transform=image_transforms)
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True,
                                                collate_fn=train_dataset.collate_fn, num_workers=workers,
                                                pin_memory=True)  # note that we're passing the collate function here
