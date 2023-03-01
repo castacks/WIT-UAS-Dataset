@@ -49,6 +49,10 @@ class HITUAVDatasetTrain(torch.utils.data.Dataset):
                 ymin = (bbox[1] - bbox[3]/2) if (bbox[1] - bbox[3]/2)/512 >= 0 else 0
                 xmax = (bbox[0] + bbox[2]/2) if (bbox[0] + bbox[2]/2)/640 <= 1 else 640
                 ymax = (bbox[1] + bbox[3]/2) if (bbox[1] + bbox[3]/2)/512 <= 1 else 512
+                if xmax - xmin < 1:
+                    xmax = xmin + 1
+                if ymax - ymin < 1:
+                    ymax = ymin + 1
                 bbox = [xmin, ymin, xmax, ymax]
             else: # YOLO
                 bbox = [
@@ -205,6 +209,10 @@ class HITUAVDatasetVal(torch.utils.data.Dataset):
                 ymin = (bbox[1] - bbox[3]/2) if (bbox[1] - bbox[3]/2)/512 >= 0 else 0
                 xmax = (bbox[0] + bbox[2]/2) if (bbox[0] + bbox[2]/2)/640 <= 1 else 640
                 ymax = (bbox[1] + bbox[3]/2) if (bbox[1] + bbox[3]/2)/512 <= 1 else 512
+                if xmax - xmin < 1:
+                    xmax = xmin + 1
+                if ymax - ymin < 1:
+                    ymax = ymin + 1
                 bbox = [xmin, ymin, xmax, ymax]
             else: # YOLO, normalize coordinates
                 bbox = [bbox[0]/640, bbox[1]/512, bbox[2]/640, bbox[3]/512]
@@ -338,6 +346,10 @@ class HITUAVDatasetTest(torch.utils.data.Dataset):
                 ymin = (bbox[1] - bbox[3]/2) if (bbox[1] - bbox[3]/2)/512 >= 0 else 0
                 xmax = (bbox[0] + bbox[2]/2) if (bbox[0] + bbox[2]/2)/640 <= 1 else 640
                 ymax = (bbox[1] + bbox[3]/2) if (bbox[1] + bbox[3]/2)/512 <= 1 else 512
+                if xmax - xmin < 1:
+                    xmax = xmin + 1
+                if ymax - ymin < 1:
+                    ymax = ymin + 1
                 bbox = [xmin, ymin, xmax, ymax]
             else:
                 bbox = [bbox[0]/640, bbox[1]/512, bbox[2]/640, bbox[3]/512]
