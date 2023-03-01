@@ -242,13 +242,25 @@ def train(train_loader, model, criterion, optimizer, epoch):
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'.format(epoch, i, len(train_loader),
                                                                   batch_time=batch_time,
                                                                   data_time=data_time, loss=losses))
-        
+                                                    
+            
     # Tensorboard logging
     tensorboard_log = [
         ("train/loss", to_cpu(loss).item())]
     logger.list_of_scalars_summary(tensorboard_log, batches_done)
 
+    # VISUALIZE ONLY THE LAST BATCH
+    image_list = []
+    det_boxes_batch, det_labels_batch, det_scores_batch = model.detect_objects(predicted_locs, predicted_scores, min_score=0.01, max_overlap=0.45, top_k=200) 
+    boxes = [b.to(device) for b in boxes]
+    labels = [l.to(device) for l in labels]
+    wandb_logger.add_batch(images=images,
+                            predictions=[torch.cat([box, score.reshape(-1, 1), label.reshape(-1, 1)], dim=1) for (box, score, label) in zip(det_boxes_batch, det_scores_batch, det_labels_batch)], # each box: [x1, y1, x2, y2, prediction_score, label]
+                            ground_truths=[torch.cat([label.reshape(-1, 1), box], dim=1) for (label, box) in zip(labels, boxes)], # each box: [label, x1, y1, x2, y2]
+                            class_id_to_label={id: name for name, id in label_map.items()},
+                            image_list=image_list) # add batch to image list before bulk upload
     wandb_logger.log({"train/loss": to_cpu(loss).item(),
+                      "train/images": image_list,
                       "epoch": epoch})
     
     del predicted_locs, predicted_scores, images, boxes, labels  # free some memory since their histories may be stored
