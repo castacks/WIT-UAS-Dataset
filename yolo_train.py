@@ -122,10 +122,13 @@ def run():
         train_dataset = HITUAVDatasetTrain(root='./', yolo=True, image_transform=image_transform)
         val_dataset = HITUAVDatasetVal(root='./', yolo=True)
     elif args.data == "wit":
-        train_dataset = WITUAVDataset(root="./WIT-UAV-Dataset_split/train/", sensor=args.wit_sensor, yolo=True)
+        train_dataset = WITUAVDataset(root="./WIT-UAV-Dataset_split/train/", sensor=args.wit_sensor, yolo=True, image_transform=image_transform)
         val_dataset = WITUAVDataset(root="./WIT-UAV-Dataset_split/val/", sensor=args.wit_sensor, yolo=True)
     elif  args.data == "all":
-        train_dataset = CombinedDataset([HITUAVDatasetTrain(root='./', yolo=True, image_transform=image_transform), WITUAVDataset(root="./WIT-UAV-Dataset_split/train/", sensor=args.wit_sensor, yolo=True)])
+        train_dataset = CombinedDataset([
+            HITUAVDatasetTrain(root='./', yolo=True, image_transform=image_transform), 
+            WITUAVDataset(root="./WIT-UAV-Dataset_split/train/", sensor=args.wit_sensor, yolo=True, image_transform=image_transform)
+        ])
         val_dataset = CombinedDataset([HITUAVDatasetVal(root='./', yolo=True), WITUAVDataset(root="./WIT-UAV-Dataset_split/val/", sensor=args.wit_sensor, yolo=True)])
 
     batch_size = args.batch_size  # batch size
