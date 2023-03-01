@@ -390,6 +390,7 @@ class HITUAVDatasetTest(torch.utils.data.Dataset):
             return new_image, boxes
 
 class WITUAVDataset(torch.utils.data.Dataset):
+<<<<<<< HEAD
     def __init__(self, root, yolo=False, yolo_dim=[416, 416]):
         self.yolo = yolo
         self.yolo_dim = yolo_dim
@@ -403,6 +404,32 @@ class WITUAVDataset(torch.utils.data.Dataset):
                         self.images[os.path.join(root, name)] =  os.path.join(root, expected_label)
                     else:
                         self.images[os.path.join(root, name)] = False
+=======
+    def __init__(self, root, sensor="both", yolo=False, yolo_dim=[416, 416]):
+        """load WIT-UAV-Dataset
+
+        Args:
+            root (_type_): root of the dataset, all subfolder will be traversed.
+            sensor (str, optional): can be "flir", "seek", or "both". Defaults to "both".
+            yolo (bool, optional): weather network architecture is YOLO. Defaults to False.
+            yolo_dim (list, optional): yolo dimension. Defaults to [416, 416].
+        """
+        self.yolo = yolo
+        self.yolo_dim = yolo_dim
+        dataset_path = root
+        self.images = {}
+        if sensor == "both":
+            sensor = ("flir", "seek")
+        for root, _, files in os.walk(dataset_path):
+            if root.endswith(sensor):
+                for name in files:
+                    if name.endswith((".png", ".jpg")):
+                        expected_label = (os.path.splitext(name)[0] + '.label')
+                        if expected_label in files:
+                            self.images[os.path.join(root, name)] =  os.path.join(root, expected_label)
+                        else:
+                            self.images[os.path.join(root, name)] = False
+>>>>>>> origin/feature/HIT-UAV-Dataset-Loader
         self.images = collections.OrderedDict(sorted(self.images.items()))
 
     def read_label(self, label_path, image_size):
@@ -529,3 +556,42 @@ class WITUAVDataset(torch.utils.data.Dataset):
         except:
             print('unexpected error')
             return new_image, boxes
+        
+class CombinedDataset(torch.utils.data.ConcatDataset):
+    def __init__(self, datasets):
+        super().__init__(datasets)
+
+    def collate_fn(self, batch):
+        images = list()
+        boxes = list()
+        labels = list()
+        for b in batch:
+            images.append(b[0])
+            boxes.append(b[1])
+            labels.append(b[2])
+        images = torch.stack(images, dim=0)
+        return images, boxes, labels
+
+    def yolo_collate_fn(self, batch):
+        # self.batch_count += 1
+
+        # Drop invalid images
+        batch = [data for data in batch if data is not None]
+
+        imgs, bb_targets = list(zip(*batch))
+
+        # # Selects new image size every tenth batch
+        # if self.multiscale and self.batch_count % 10 == 0:
+        #     self.img_size = random.choice(
+        #         range(self.min_size, self.max_size + 1, 32))
+
+        # Resize images to input shape
+        # imgs = torch.stack([resize(img, self.img_size) for img in imgs])
+        imgs = torch.stack([img for img in imgs])
+
+        # Add sample index to targets
+        for i, boxes in enumerate(bb_targets):
+            boxes[:, 0] = i
+        bb_targets = torch.cat(bb_targets, 0)
+
+        return imgs, bb_targets
