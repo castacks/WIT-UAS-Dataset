@@ -178,10 +178,10 @@ def main():
               epoch=epoch)
 
         # Save checkpoint
-        if epoch % args.checkpoint_interval == 0:
+        if args.checkpoint_interval > 0 and epoch % args.checkpoint_interval == 0:
             save_checkpoint(epoch, model, optimizer, logger.log_dir)
 
-        if epoch % args.evaluation_interval == 0:
+        if args.evaluation_interval > 0 and epoch % args.evaluation_interval == 0:
             evaluate(test_loader=val_loader, model=model)
 
 
@@ -243,6 +243,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'.format(epoch, i, len(train_loader),
                                                                   batch_time=batch_time,
                                                                   data_time=data_time, loss=losses))
+        # break  # debug overfit one batch
                                                     
             
     # Tensorboard logging
