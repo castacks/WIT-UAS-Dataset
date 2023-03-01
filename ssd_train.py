@@ -142,7 +142,7 @@ def main():
                                                pin_memory=True)  # note that we're passing the collate function here
     
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False,
-                                               collate_fn=val_dataset.collate_fn, num_workers=args.n_cpu,
+                                               collate_fn=val_dataset.collate_fn, num_workers=0,
                                                pin_memory=True)  # note that we're passing the collate function here
     
     # test_dataset = HITUAVDatasetTest(data_folder)

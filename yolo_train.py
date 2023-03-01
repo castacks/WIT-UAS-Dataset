@@ -133,7 +133,7 @@ def run():
                                                collate_fn=train_dataset.yolo_collate_fn, num_workers=workers,
                                                pin_memory=True)  # note that we're passing the collate function here
     validation_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False,
-                                               collate_fn=val_dataset.yolo_collate_fn, num_workers=workers,
+                                               collate_fn=val_dataset.yolo_collate_fn, num_workers=0,
                                                pin_memory=True)  # note that we're passing the collate function here
 
     # ################
