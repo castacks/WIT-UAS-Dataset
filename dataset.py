@@ -77,7 +77,7 @@ class HITUAVDatasetTrain(torch.utils.data.Dataset):
                 bboxes_list.append(bbox)
                 labels_list.append(label)
             else: # YOLO
-                bbox = [0, 0, 1, 1]
+                bbox = [0.5, 0.5, 1, 1]
                 label = 5
                 bboxes_list.append(bbox)
                 labels_list.append(label)
@@ -212,7 +212,7 @@ class HITUAVDatasetVal(torch.utils.data.Dataset):
                 bboxes_list.append(bbox)
                 labels_list.append(label)
             else:
-                bbox = [0, 0, 1, 1]
+                bbox = [0.5, 0.5, 1, 1]
                 label = 5
                 bboxes_list.append(bbox)
                 labels_list.append(label)
@@ -345,7 +345,7 @@ class HITUAVDatasetTest(torch.utils.data.Dataset):
                 bboxes_list.append(bbox)
                 labels_list.append(label)
             else:
-                bbox = [0, 0, 1, 1]
+                bbox = [0.5, 0.5, 1, 1]
                 label = 5
                 bboxes_list.append(bbox)
                 labels_list.append(label)
@@ -510,7 +510,7 @@ class WITUAVDataset(torch.utils.data.Dataset):
                 bboxes_list.append(bbox)
                 labels_list.append(label)
             else:
-                bbox = [0, 0, 1, 1]
+                bbox = [0.5, 0.5, 1, 1]
                 label = 5
                 bboxes_list.append(bbox)
                 labels_list.append(label)
