@@ -1,9 +1,10 @@
+import argparse
 import time
 import torch.backends.cudnn as cudnn
 import torch.optim
 import torch.utils.data
 from ssd_model import SSD300, MultiBoxLoss
-from dataset import HITUAVDatasetTest, HITUAVDatasetTrain, HITUAVDatasetVal
+from dataset import HITUAVDatasetTrain, HITUAVDatasetVal, WITUAVDataset, CombinedDataset
 from ssd_utils import *
 
 from tqdm import tqdm
@@ -49,10 +50,6 @@ n_classes = len(label_map)  # number of different types of objects
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Learning parameters
-checkpoint = None  # path to model checkpoint, None if none
-batch_size = 20  # batch size
-iterations = 60000  # number of iterations to train
-workers = 12  # number of workers for loading data in the DataLoader
 print_freq = 200  # print training status every __ batches
 lr = 5e-4  # learning rate
 decay_lr_at = [80000, 100000]  # decay learning rate after these many iterations
@@ -61,8 +58,6 @@ momentum = 0.9  # momentum
 weight_decay = 5e-4  # weight decay
 grad_clip = None  # clip if gradients are exploding, which may happen at larger batch sizes (sometimes at 32) - you will recognize it by a sorting error in the MuliBox loss calculation
 
-evaluation_interval = 10
-checkpoint_interval = 10
 
 cudnn.benchmark = True
 
@@ -74,7 +69,7 @@ def main():
     global start_epoch, label_map, epoch, checkpoint, decay_lr_at
 
     # Initialize model or load checkpoint
-    if checkpoint is None:
+    if args.pretrained_weights is None:
         start_epoch = 0
         model = SSD300(n_classes=n_classes)
         # Initialize the optimizer, with twice the default learning rate for biases, as in the original Caffe repo
@@ -90,7 +85,7 @@ def main():
                                     lr=lr, momentum=momentum, weight_decay=weight_decay)
 
     else:
-        checkpoint = torch.load(checkpoint)
+        checkpoint = torch.load(args.pretrained_weights)
         start_epoch = checkpoint['epoch'] + 1
         print('\nLoaded checkpoint from epoch %d.\n' % start_epoch)
         model = checkpoint['model']
@@ -132,15 +127,22 @@ def main():
     )
 
 
+    if args.data == "hit":
+        train_dataset = HITUAVDatasetTrain(root='./', image_transform=image_transform)
+        val_dataset = HITUAVDatasetVal(root='./')
+    elif args.data == "wit":
+        train_dataset = WITUAVDataset(root="./WIT-UAV-Dataset_split/train/", sensor=args.wit_sensor)
+        val_dataset = WITUAVDataset(root="./WIT-UAV-Dataset_split/val/", sensor=args.wit_sensor)
+    elif  args.data == "all":
+        train_dataset = CombinedDataset([HITUAVDatasetTrain(root='./', image_transform=image_transform), WITUAVDataset(root="./WIT-UAV-Dataset_split/train/", sensor=args.wit_sensor)])
+        val_dataset = CombinedDataset([HITUAVDatasetVal(root='./'), WITUAVDataset(root="./WIT-UAV-Dataset_split/val/", sensor=args.wit_sensor)])
 
-    train_dataset = HITUAVDatasetTrain(data_folder, image_transform=image_transform)
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True,
-                                               collate_fn=train_dataset.collate_fn, num_workers=workers,
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
+                                               collate_fn=train_dataset.collate_fn, num_workers=args.n_cpu,
                                                pin_memory=True)  # note that we're passing the collate function here
     
-    val_dataset = HITUAVDatasetVal(data_folder)
-    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False,
-                                               collate_fn=val_dataset.collate_fn, num_workers=workers,
+    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False,
+                                               collate_fn=val_dataset.collate_fn, num_workers=args.n_cpu,
                                                pin_memory=True)  # note that we're passing the collate function here
     
     # test_dataset = HITUAVDatasetTest(data_folder)
@@ -151,19 +153,18 @@ def main():
     # Calculate total number of epochs to train and the epochs to decay learning rate at (i.e. convert iterations to epochs)
     # To convert iterations to epochs, divide iterations by the number of iterations per epoch
     # The paper trains for 120,000 iterations with a batch size of 32, decays after 80,000 and 100,000 iterations
-    epochs = iterations // (len(train_dataset) // 32)
     decay_lr_at = [it // (len(train_dataset) // 32) for it in decay_lr_at]
 
-    wandb_logger.init(config={"model architecture": "SSD",
-                              "batch size": batch_size,
-                              "epoch": epochs,
+    wandb_logger.init(config=args)
+        
+    wandb_logger.set_config(config={"model architecture": "SSD",
                               "learning rate": lr,
                               "momentum": momentum,
-                              "weight decay": weight_decay,
-                              "data": "HIT"})
+                              "weight decay": weight_decay}
+                              )
 
     # Epochs
-    for epoch in range(start_epoch, epochs):
+    for epoch in range(start_epoch, args.epochs):
 
         # Decay learning rate at particular epochs
         if epoch in decay_lr_at:
@@ -177,10 +178,10 @@ def main():
               epoch=epoch)
 
         # Save checkpoint
-        if epoch % checkpoint_interval == 0:
+        if epoch % args.checkpoint_interval == 0:
             save_checkpoint(epoch, model, optimizer, logger.log_dir)
 
-        if epoch % evaluation_interval == 0:
+        if epoch % args.evaluation_interval == 0:
             evaluate(test_loader=val_loader, model=model)
 
 
@@ -336,4 +337,19 @@ def evaluate(test_loader, model):
                       "epoch": epoch})
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="Trains the SSD model.")
+    parser.add_argument("-d", "--data", type=str, default="all", help="dataset to use, can be all/hit/wit")
+    parser.add_argument("--wit-sensor", type=str, default="both", help="set to flir/seek/both to configure sensors in wit, applies to both train and val")
+    parser.add_argument("-e", "--epochs", type=int, default=900, help="Number of epochs")
+    parser.add_argument("-v", "--verbose", default=False, action='store_true', help="Makes the training more verbose")
+    parser.add_argument("--n-cpu", type=int, default=12, help="Number of cpu threads to use during batch generation")
+    parser.add_argument("--pretrained-weights", type=str, help="Path to checkpoint file (.weights or .pth). Starts training from checkpoint model")
+    parser.add_argument("--checkpoint-interval", type=int, default=10, help="Interval of epochs between saving model weights")
+    parser.add_argument("--evaluation-interval", type=int, default=1, help="Interval of epochs between evaluations on validation set")
+    parser.add_argument("--logdir", type=str, default="logs", help="Directory for training log files (e.g. for TensorBoard)")
+    parser.add_argument("--seed", type=int, default=-1, help="Makes results reproducable. Set -1 to disable.")
+    parser.add_argument("--batch-size", type=int, default=16, help="set batch size of training, depends on your GPU memory capacity")
+    args = parser.parse_args()
+    print(f"Command line arguments: {args}")
+
     main()

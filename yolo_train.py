@@ -42,9 +42,9 @@ def run():
     parser.add_argument("--iou-thres", type=float, default=0.5, help="Evaluation: IOU threshold required to qualify as detected")
     parser.add_argument("--conf-thres", type=float, default=0.1, help="Evaluation: Object confidence threshold")
     parser.add_argument("--nms-thres", type=float, default=0.5, help="Evaluation: IOU threshold for non-maximum suppression")
-    parser.add_argument("--logdir", type=str, default="yolo_logs", help="Directory for training log files (e.g. for TensorBoard)")
+    parser.add_argument("--logdir", type=str, default="logs", help="Directory for training log files (e.g. for TensorBoard)")
     parser.add_argument("--seed", type=int, default=-1, help="Makes results reproducable. Set -1 to disable.")
-    parser.add_argument("--batch-size", type=int, default=2, help="set batch size of training, depends on your GPU memory capacity")
+    parser.add_argument("--batch-size", type=int, default=16, help="set batch size of training, depends on your GPU memory capacity")
     args = parser.parse_args()
     print(f"Command line arguments: {args}")
 
