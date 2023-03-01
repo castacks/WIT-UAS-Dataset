@@ -38,6 +38,13 @@ class HITUAVDatasetTrain(torch.utils.data.Dataset):
         labels_list = []
         for object in objects_dict:
             bbox = object['bbox'] # ! original format: [center_x, center_y, width, height] in pixel
+
+            # the released HIT TRAIN dataset is bugged, it appears the center has been placed in the top left corner. Therefore we need to add the offset to the center, which is equal to half the width and height. TODO: email them
+            # seems to only be for Train
+            w, h = bbox[2], bbox[3]
+            bbox[0] += w/2
+            bbox[1] += h/2
+
             if self.yolo == False: # SSD
                 xmin = (bbox[0] - bbox[2]/2) if (bbox[0] - bbox[2]/2)/640 >= 0 else 0
                 ymin = (bbox[1] - bbox[3]/2) if (bbox[1] - bbox[3]/2)/512 >= 0 else 0
@@ -51,11 +58,10 @@ class HITUAVDatasetTrain(torch.utils.data.Dataset):
                     clamp(bbox[2]/640, 0, 1),
                     clamp(bbox[3]/512, 0, 1)
                     ]
-                w, h = bbox[2], bbox[3]
-                if bbox[0] - w/2 < 0:
-                    bbox = [w/2, bbox[1], w + (bbox[0] - w/2), bbox[3]]
-                if bbox[1] - h/2 < 0:
-                    bbox = [bbox[0], h/2, bbox[2], bbox[3] + (bbox[1] - h/2)]
+                # if bbox[0] - w/2 < 0:
+                #     bbox = [w/2, bbox[1], w + (bbox[0] - w/2), bbox[3]]
+                # if bbox[1] - h/2 < 0:
+                #     bbox = [bbox[0], h/2, bbox[2], bbox[3] + (bbox[1] - h/2)]
 
 
             bboxes_list.append(bbox)
