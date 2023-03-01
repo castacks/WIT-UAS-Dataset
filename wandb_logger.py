@@ -7,7 +7,7 @@ WANDB_ENTITY = "cmu-ri-wildfire"
 BATCH_INTERVAL = 2
 
 
-def init(config=None):
+def init(config=None, name=""):
     """init wandb logger, sets train and eval blobs hooked to epoch as x-axis
 
     Args:
@@ -16,7 +16,7 @@ def init(config=None):
     wandb.init(project=PROJECT_NAME,
                entity=WANDB_ENTITY,
                config=config,
-               name=str(datetime.now()))
+               name=str(datetime.now())+ " " + name)
 
     # define plot x-axis and variables
     wandb.define_metric("epoch")  # x-axis
