@@ -404,21 +404,6 @@ class HITUAVDatasetTest(torch.utils.data.Dataset):
             return new_image, boxes
 
 class WITUAVDataset(torch.utils.data.Dataset):
-<<<<<<< HEAD
-    def __init__(self, root, yolo=False, yolo_dim=[416, 416]):
-        self.yolo = yolo
-        self.yolo_dim = yolo_dim
-        dataset_path =  root
-        self.images = {}
-        for root, _, files in os.walk(dataset_path):
-            for name in files:
-                if name.endswith((".png", ".jpg")):
-                    expected_label = (os.path.splitext(name)[0] + '.label')
-                    if expected_label in files:
-                        self.images[os.path.join(root, name)] =  os.path.join(root, expected_label)
-                    else:
-                        self.images[os.path.join(root, name)] = False
-=======
     def __init__(self, root, sensor="both", yolo=False, yolo_dim=[416, 416]):
         """load WIT-UAV-Dataset
 
@@ -443,7 +428,6 @@ class WITUAVDataset(torch.utils.data.Dataset):
                             self.images[os.path.join(root, name)] =  os.path.join(root, expected_label)
                         else:
                             self.images[os.path.join(root, name)] = False
->>>>>>> origin/feature/HIT-UAV-Dataset-Loader
         self.images = collections.OrderedDict(sorted(self.images.items()))
 
     def read_label(self, label_path, image_size):
