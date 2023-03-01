@@ -81,19 +81,19 @@ def run():
     mini_batch_size = model.hyperparams['batch'] // model.hyperparams['subdivisions']
 
     image_transform = A.Compose([
-            # A.RandomRotate90(),
-            # A.HorizontalFlip(p=0.5),
-            # A.VerticalFlip(p=0.5),
-            # A.ColorJitter(p=0.5),
+            A.RandomRotate90(),
+            A.HorizontalFlip(p=0.5),
+            A.VerticalFlip(p=0.5),
+            A.ColorJitter(p=0.5),
             A.CLAHE(clip_limit=(1,4), p=0.5),
-            # A.GaussNoise(var_limit=(10.0, 50.0), p=0.5),
-            # A.GridDistortion(p=0.5),
-            # A.RandomBrightnessContrast(p=0.5),
-            # A.RandomGamma(p=0.5),
-            # A.HueSaturationValue(p=0.5),
-            # A.RandomShadow(p=0.5, num_shadows_lower=1, num_shadows_upper=3, shadow_dimension=3),
-            # A.RandomResizedCrop(height=300, width=300, scale=(0.8, 1.0), ratio=(0.75, 1.3333333333333333), p=1.0),
-            # A.Perspective(),
+            A.GaussNoise(var_limit=(10.0, 50.0), p=0.5),
+            A.GridDistortion(p=0.5),
+            A.RandomBrightnessContrast(p=0.5),
+            A.RandomGamma(p=0.5),
+            A.HueSaturationValue(p=0.5),
+            A.RandomShadow(p=0.5, num_shadows_lower=1, num_shadows_upper=3, shadow_dimension=3),
+            A.RandomResizedCrop(height=300, width=300, scale=(0.8, 1.0), ratio=(0.75, 1.3333333333333333), p=1.0),
+            A.Perspective(),
         ], 
         # HIT dataset is in unnormalized YOLO format, which is x_center, y_center, width, height.
         bbox_params=A.BboxParams(format='yolo', label_fields=['labels'])
