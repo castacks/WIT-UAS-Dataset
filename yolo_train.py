@@ -19,7 +19,7 @@ from terminaltables import AsciiTable
 
 from torchsummary import summary
 
-from dataset import HITUAVDatasetTrain, HITUAVDatasetVal, WITUAVDataset
+from dataset import HITUAVDatasetTrain, HITUAVDatasetVal, WITUAVDataset, CombinedDataset
 
 import wandb_logger
 
@@ -28,7 +28,8 @@ def run():
     print_environment_info()
     parser = argparse.ArgumentParser(description="Trains the YOLO model.")
     parser.add_argument("-m", "--model", type=str, default="yolov3-custom.cfg", help="Path to model definition file (.cfg)")
-    parser.add_argument("-d", "--data", type=str, default="wit.data", help="Path to data config file (.data)")
+    parser.add_argument("-d", "--data", type=str, default="all", help="dataset to use, can be all/hit/wit")
+    parser.add_argument("--wit-sensor", type=str, default="both", help="set to flir/seek/both to configure sensors in wit, applies to both train and val")
     parser.add_argument("-e", "--epochs", type=int, default=900, help="Number of epochs")
     parser.add_argument("-v", "--verbose", default=False, action='store_true', help="Makes the training more verbose")
     parser.add_argument("--n-cpu", type=int, default=8, help="Number of cpu threads to use during batch generation")
@@ -55,7 +56,7 @@ def run():
     os.makedirs("checkpoints", exist_ok=True)
 
     # Get data configuration
-    data_config = parse_data_config(args.data)
+    data_config = parse_data_config("dataset.cfg")
     # train_path = data_config["train"]
     # valid_path = data_config["valid"]
     class_names = load_classes(data_config["names"])
@@ -95,13 +96,15 @@ def run():
     #     mini_batch_size,
     #     model.hyperparams['height'],
     #     args.n_cpu)
-    if args.data == "hit.data":
-        data_folder = './'  # folder with data files
-        train_dataset = HITUAVDatasetTrain(data_folder, yolo=True)
-        val_dataset = HITUAVDatasetVal(data_folder, yolo=True)
-    elif args.data == "wit.data":
-        train_dataset = WITUAVDataset(root="./WIT-UAV-Dataset/train/", yolo=True)
-        val_dataset = WITUAVDataset(root="./WIT-UAV-Dataset/val/", yolo=True)
+    if args.data == "hit":
+        train_dataset = HITUAVDatasetTrain(root='./', yolo=True)
+        val_dataset = HITUAVDatasetVal(root='./', yolo=True)
+    elif args.data == "wit":
+        train_dataset = WITUAVDataset(root="./WIT-UAV-Dataset/train/", sensor=args.wit_sensor, yolo=True)
+        val_dataset = WITUAVDataset(root="./WIT-UAV-Dataset/val/", sensor=args.wit_sensor, yolo=True)
+    elif  args.data == "all":
+        train_dataset = CombinedDataset([HITUAVDatasetTrain(root='./', yolo=True), WITUAVDataset(root="./WIT-UAV-Dataset/train/", sensor=args.wit_sensor, yolo=True)])
+        val_dataset = CombinedDataset([HITUAVDatasetVal(root='./', yolo=True), WITUAVDataset(root="./WIT-UAV-Dataset/val/", sensor=args.wit_sensor, yolo=True)])
 
     batch_size = args.batch_size  # batch size
     workers = 4  # number of workers for loading data in the DataLoader

@@ -180,7 +180,7 @@ def run():
     print(f"Command line arguments: {args}")
 
     # Load configuration from data file
-    data_config = parse_data_config(args.data)
+    data_config = parse_data_config("dataset.cfg")
     # Path to file containing all images for validation
     valid_path = './'
     class_names = load_classes(data_config["names"])  # List of class names
