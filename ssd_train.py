@@ -142,8 +142,8 @@ def main():
                                                pin_memory=True)  # note that we're passing the collate function here
     
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False,
-                                               collate_fn=val_dataset.collate_fn, num_workers=0,
-                                               pin_memory=True)  # note that we're passing the collate function here
+                                               collate_fn=val_dataset.collate_fn, num_workers=2, # for some reason using less workers here makes faster validation
+                                              pin_memory=True)  # note that we're passing the collate function here
     
     # test_dataset = HITUAVDatasetTest(data_folder)
     # test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True,
