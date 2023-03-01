@@ -49,10 +49,6 @@ class HITUAVDatasetTrain(torch.utils.data.Dataset):
                 ymin = (bbox[1] - bbox[3]/2) if (bbox[1] - bbox[3]/2)/512 >= 0 else 0
                 xmax = (bbox[0] + bbox[2]/2) if (bbox[0] + bbox[2]/2)/640 <= 1 else 640
                 ymax = (bbox[1] + bbox[3]/2) if (bbox[1] + bbox[3]/2)/512 <= 1 else 512
-                if xmax - xmin < 1:
-                    xmax = xmin + 1
-                if ymax - ymin < 1:
-                    ymax = ymin + 1
                 bbox = [xmin, ymin, xmax, ymax]
             else: # YOLO
                 bbox = [
@@ -61,11 +57,6 @@ class HITUAVDatasetTrain(torch.utils.data.Dataset):
                     clamp(bbox[2]/640, 0, 1),
                     clamp(bbox[3]/512, 0, 1)
                     ]
-                # if bbox[0] - w/2 < 0:
-                #     bbox = [w/2, bbox[1], w + (bbox[0] - w/2), bbox[3]]
-                # if bbox[1] - h/2 < 0:
-                #     bbox = [bbox[0], h/2, bbox[2], bbox[3] + (bbox[1] - h/2)]
-
 
             bboxes_list.append(bbox)
             labels_list.append(object['category_id'] + 1)
@@ -209,10 +200,6 @@ class HITUAVDatasetVal(torch.utils.data.Dataset):
                 ymin = (bbox[1] - bbox[3]/2) if (bbox[1] - bbox[3]/2)/512 >= 0 else 0
                 xmax = (bbox[0] + bbox[2]/2) if (bbox[0] + bbox[2]/2)/640 <= 1 else 640
                 ymax = (bbox[1] + bbox[3]/2) if (bbox[1] + bbox[3]/2)/512 <= 1 else 512
-                if xmax - xmin < 1:
-                    xmax = xmin + 1
-                if ymax - ymin < 1:
-                    ymax = ymin + 1
                 bbox = [xmin, ymin, xmax, ymax]
             else: # YOLO, normalize coordinates
                 bbox = [bbox[0]/640, bbox[1]/512, bbox[2]/640, bbox[3]/512]
@@ -346,10 +333,6 @@ class HITUAVDatasetTest(torch.utils.data.Dataset):
                 ymin = (bbox[1] - bbox[3]/2) if (bbox[1] - bbox[3]/2)/512 >= 0 else 0
                 xmax = (bbox[0] + bbox[2]/2) if (bbox[0] + bbox[2]/2)/640 <= 1 else 640
                 ymax = (bbox[1] + bbox[3]/2) if (bbox[1] + bbox[3]/2)/512 <= 1 else 512
-                if xmax - xmin < 1:
-                    xmax = xmin + 1
-                if ymax - ymin < 1:
-                    ymax = ymin + 1
                 bbox = [xmin, ymin, xmax, ymax]
             else:
                 bbox = [bbox[0]/640, bbox[1]/512, bbox[2]/640, bbox[3]/512]
@@ -489,6 +472,8 @@ class WITUAVDataset(torch.utils.data.Dataset):
             lines = csv.reader(file, delimiter=' ')
             for row in lines: # ! original format: [min_x, min_y, max_x, max_y, class_code]
                 row[:-1] = [float(i) for i in row[:-1]] # enforcing int type
+                if row[0] == row[2] or row[1] == row[3]: # ! skip invalid bounding box
+                    continue
                 if not self.yolo: # ! SSD bounding box eats: [min_x, min_y, max_x, max_y] in pixel
                     bbox = row[:-1]
                 else: # ! YOLO bounding box eats: [center_x_ratio, center_y_ratio, box_width_ratio, box_height_ratio]
