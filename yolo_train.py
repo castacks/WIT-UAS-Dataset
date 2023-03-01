@@ -29,6 +29,7 @@ import wandb_logger
 def run():
     print_environment_info()
     parser = argparse.ArgumentParser(description="Trains the YOLO model.")
+    parser.add_argument("-n", "--name", type=str, default="unnamed", help="Name of experiment")
     parser.add_argument("-m", "--model", type=str, default="yolov3-custom.cfg", help="Path to model definition file (.cfg)")
     parser.add_argument("-d", "--data", type=str, default="all", help="dataset to use, can be all/hit/wit")
     parser.add_argument("--wit-sensor", type=str, default="both", help="set to flir/seek/both to configure sensors in wit, applies to both train and val")
@@ -70,7 +71,7 @@ def run():
 
     model = load_model(args.model, args.pretrained_weights)
 
-    wandb_logger.init(config=args) # batch-size, lr, epochs, dataset
+    wandb_logger.init(name=args.name, config=args) # batch-size, lr, epochs, dataset
     wandb_logger.set_config(config={"model architecture": "YOLO",
                                     "learning rate": model.hyperparams['learning_rate']}) # learning rate
 

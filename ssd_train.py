@@ -155,7 +155,7 @@ def main():
     # The paper trains for 120,000 iterations with a batch size of 32, decays after 80,000 and 100,000 iterations
     decay_lr_at = [it // (len(train_dataset) // 32) for it in decay_lr_at]
 
-    wandb_logger.init(config=args)
+    wandb_logger.init(name=args.name, config=args)
         
     wandb_logger.set_config(config={"model architecture": "SSD",
                               "learning rate": lr,
@@ -338,6 +338,7 @@ def evaluate(test_loader, model):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Trains the SSD model.")
+    parser.add_argument("-n", "--name", type=str, default="unnamed", help="Name of experiment")
     parser.add_argument("-d", "--data", type=str, default="all", help="dataset to use, can be all/hit/wit")
     parser.add_argument("--wit-sensor", type=str, default="both", help="set to flir/seek/both to configure sensors in wit, applies to both train and val")
     parser.add_argument("-e", "--epochs", type=int, default=900, help="Number of epochs")
