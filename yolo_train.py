@@ -1,5 +1,7 @@
 from __future__ import division
 
+import albumentations as A
+from albumentations.pytorch import ToTensorV2
 import os
 import argparse
 import tqdm
@@ -32,7 +34,7 @@ def run():
     parser.add_argument("--wit-sensor", type=str, default="both", help="set to flir/seek/both to configure sensors in wit, applies to both train and val")
     parser.add_argument("-e", "--epochs", type=int, default=900, help="Number of epochs")
     parser.add_argument("-v", "--verbose", default=False, action='store_true', help="Makes the training more verbose")
-    parser.add_argument("--n-cpu", type=int, default=8, help="Number of cpu threads to use during batch generation")
+    parser.add_argument("--n-cpu", type=int, default=0, help="Number of cpu threads to use during batch generation")
     parser.add_argument("--pretrained-weights", type=str, help="Path to checkpoint file (.weights or .pth). Starts training from checkpoint model")
     parser.add_argument("--checkpoint-interval", type=int, default=10, help="Interval of epochs between saving model weights")
     parser.add_argument("--evaluation-interval", type=int, default=1, help="Interval of epochs between evaluations on validation set")
@@ -78,6 +80,25 @@ def run():
 
     mini_batch_size = model.hyperparams['batch'] // model.hyperparams['subdivisions']
 
+    image_transform = A.Compose([
+            # A.RandomRotate90(),
+            # A.HorizontalFlip(p=0.5),
+            # A.VerticalFlip(p=0.5),
+            # A.ColorJitter(p=0.5),
+            A.CLAHE(clip_limit=(1,4), p=0.5),
+            # A.GaussNoise(var_limit=(10.0, 50.0), p=0.5),
+            # A.GridDistortion(p=0.5),
+            # A.RandomBrightnessContrast(p=0.5),
+            # A.RandomGamma(p=0.5),
+            # A.HueSaturationValue(p=0.5),
+            # A.RandomShadow(p=0.5, num_shadows_lower=1, num_shadows_upper=3, shadow_dimension=3),
+            # A.RandomResizedCrop(height=300, width=300, scale=(0.8, 1.0), ratio=(0.75, 1.3333333333333333), p=1.0),
+            # A.Perspective(),
+        ], 
+        # HIT dataset is in unnormalized YOLO format, which is x_center, y_center, width, height.
+        bbox_params=A.BboxParams(format='yolo', label_fields=['labels'])
+    )
+
     # #################
     # Create Dataloader
     # #################
@@ -97,17 +118,17 @@ def run():
     #     model.hyperparams['height'],
     #     args.n_cpu)
     if args.data == "hit":
-        train_dataset = HITUAVDatasetTrain(root='./', yolo=True)
+        train_dataset = HITUAVDatasetTrain(root='./', yolo=True, image_transform=image_transform)
         val_dataset = HITUAVDatasetVal(root='./', yolo=True)
     elif args.data == "wit":
-        train_dataset = WITUAVDataset(root="./WIT-UAV-Dataset/train/", sensor=args.wit_sensor, yolo=True)
-        val_dataset = WITUAVDataset(root="./WIT-UAV-Dataset/val/", sensor=args.wit_sensor, yolo=True)
+        train_dataset = WITUAVDataset(root="./WIT-UAV-Dataset_split/train/", sensor=args.wit_sensor, yolo=True)
+        val_dataset = WITUAVDataset(root="./WIT-UAV-Dataset_split/val/", sensor=args.wit_sensor, yolo=True)
     elif  args.data == "all":
-        train_dataset = CombinedDataset([HITUAVDatasetTrain(root='./', yolo=True), WITUAVDataset(root="./WIT-UAV-Dataset/train/", sensor=args.wit_sensor, yolo=True)])
-        val_dataset = CombinedDataset([HITUAVDatasetVal(root='./', yolo=True), WITUAVDataset(root="./WIT-UAV-Dataset/val/", sensor=args.wit_sensor, yolo=True)])
+        train_dataset = CombinedDataset([HITUAVDatasetTrain(root='./', yolo=True, image_transform=image_transform), WITUAVDataset(root="./WIT-UAV-Dataset_split/train/", sensor=args.wit_sensor, yolo=True)])
+        val_dataset = CombinedDataset([HITUAVDatasetVal(root='./', yolo=True), WITUAVDataset(root="./WIT-UAV-Dataset_split/val/", sensor=args.wit_sensor, yolo=True)])
 
     batch_size = args.batch_size  # batch size
-    workers = 4  # number of workers for loading data in the DataLoader
+    workers = args.n_cpu  # number of workers for loading data in the DataLoader
     dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True,
                                                collate_fn=train_dataset.yolo_collate_fn, num_workers=workers,
                                                pin_memory=True)  # note that we're passing the collate function here
@@ -214,6 +235,8 @@ def run():
             metrics["IoU_losses"].append(loss_components[0])
             metrics["object_losses"].append(loss_components[1])
             metrics["class_losses"].append(loss_components[2])
+
+        
 
         wandb_logger.log({"train/loss": sum(metrics["losses"])/len(metrics["losses"]),
                           "train/IoU_loss": sum(metrics["IoU_losses"])/len(metrics["IoU_losses"]),

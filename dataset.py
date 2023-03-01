@@ -8,6 +8,9 @@ import torchvision.transforms as transforms
 import collections
 import csv
 
+def clamp(n, minn, maxn):
+    return max(min(maxn, n), minn)
+
 class HITUAVDatasetTrain(torch.utils.data.Dataset):
     def __init__(self, root, yolo=False, yolo_dim=[416, 416], image_transform=None):
         self.yolo = yolo
@@ -27,6 +30,7 @@ class HITUAVDatasetTrain(torch.utils.data.Dataset):
     
     def __getitem__(self, idx):
         img_name_id = self.imgs_train_name_ids[idx]
+        # print(img_name_id)
         img_name = img_name_id['filename']
         image = Image.open(os.path.join(self.imgs_train, img_name), mode='r').convert('RGB')
         objects_dict = [x for x in self.annotations_bbox_category if x['image_id'] == img_name_id['id']]
@@ -34,25 +38,37 @@ class HITUAVDatasetTrain(torch.utils.data.Dataset):
         labels_list = []
         for object in objects_dict:
             bbox = object['bbox'] # ! original format: [center_x, center_y, width, height] in pixel
-            if self.yolo == False:
+            if self.yolo == False: # SSD
                 xmin = (bbox[0] - bbox[2]/2) if (bbox[0] - bbox[2]/2)/640 >= 0 else 0
                 ymin = (bbox[1] - bbox[3]/2) if (bbox[1] - bbox[3]/2)/512 >= 0 else 0
                 xmax = (bbox[0] + bbox[2]/2) if (bbox[0] + bbox[2]/2)/640 <= 1 else 640
                 ymax = (bbox[1] + bbox[3]/2) if (bbox[1] + bbox[3]/2)/512 <= 1 else 512
                 bbox = [xmin, ymin, xmax, ymax]
-            else:
-                bbox = [bbox[0]/640, bbox[1]/512, bbox[2]/640, bbox[3]/512]
+            else: # YOLO
+                bbox = [
+                    clamp(bbox[0]/640, 0, 1), 
+                    clamp(bbox[1]/512, 0, 1), 
+                    clamp(bbox[2]/640, 0, 1),
+                    clamp(bbox[3]/512, 0, 1)
+                    ]
+                w, h = bbox[2], bbox[3]
+                if bbox[0] - w/2 < 0:
+                    bbox = [w/2, bbox[1], w + (bbox[0] - w/2), bbox[3]]
+                if bbox[1] - h/2 < 0:
+                    bbox = [bbox[0], h/2, bbox[2], bbox[3] + (bbox[1] - h/2)]
+
+
             bboxes_list.append(bbox)
             labels_list.append(object['category_id'] + 1)
 
         # transforms
-        # print(f"Pre transform {bboxes_list=}")
         if self.image_transform:
+            # print("Bbox list: ", bboxes_list)
+            # print("Labels list",  )
             transformed = self.image_transform(image=np.array(image), bboxes = bboxes_list, labels = labels_list)
             image = Image.fromarray(transformed["image"])
-            bboxes_list = transformed["bboxes"]
-            labels_list = transformed["labels"]
-        # print(f"Post transform {bboxes_list=}")
+            bboxes_list = [list(t) if type(t) is tuple else t for t in transformed["bboxes"]]
+            labels_list = [list(t) if type(t) is tuple else t for t in transformed["labels"]]
 
         if len(bboxes_list) == 0 and len(labels_list) == 0:
             if self.yolo == False:  # SSD
@@ -404,7 +420,7 @@ class HITUAVDatasetTest(torch.utils.data.Dataset):
             return new_image, boxes
 
 class WITUAVDataset(torch.utils.data.Dataset):
-    def __init__(self, root, sensor="both", yolo=False, yolo_dim=[416, 416]):
+    def __init__(self, root, sensor="both", yolo=False, yolo_dim=[416, 416], image_transform=None):
         """load WIT-UAV-Dataset
 
         Args:
@@ -429,6 +445,8 @@ class WITUAVDataset(torch.utils.data.Dataset):
                         else:
                             self.images[os.path.join(root, name)] = False
         self.images = collections.OrderedDict(sorted(self.images.items()))
+
+        self.image_transform = image_transform
 
     def read_label(self, label_path, image_size):
         image_width = image_size[0]
@@ -462,6 +480,15 @@ class WITUAVDataset(torch.utils.data.Dataset):
         image_label_path = list(self.images.items())[idx]
         image = Image.open(image_label_path[0], mode='r').convert('RGB')
         bboxes_list, labels_list = self.read_label(image_label_path[1], image.size)
+        
+        # transforms
+        if self.image_transform:
+            transformed = self.image_transform(image=np.array(image), bboxes = bboxes_list, labels = labels_list)
+            image = Image.fromarray(transformed["image"])
+            # list of tuple to list of lists
+            bboxes_list = [list(t) if type(t) is tuple else t for t in transformed["bboxes"]]
+            labels_list = [list(t) if type(t) is tuple else t for t in transformed["labels"]]
+
         if len(bboxes_list) == 0 and len(labels_list) == 0:
             if self.yolo == False:
                 bbox = [0, 0, image.size[0], image.size[1]]

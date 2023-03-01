@@ -102,7 +102,7 @@ def main():
 
     # Custom dataloaders
 
-    image_transforms = A.Compose([
+    image_transform = A.Compose([
             # Randomly rotate the image and bounding boxes
             A.RandomRotate90(),
             # Randomly flip the image and bounding boxes horizontally
@@ -133,7 +133,7 @@ def main():
 
 
 
-    train_dataset = HITUAVDatasetTrain(data_folder, image_transform=image_transforms)
+    train_dataset = HITUAVDatasetTrain(data_folder, image_transform=image_transform)
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True,
                                                collate_fn=train_dataset.collate_fn, num_workers=workers,
                                                pin_memory=True)  # note that we're passing the collate function here
