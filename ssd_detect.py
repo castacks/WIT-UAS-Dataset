@@ -5,6 +5,7 @@ import os
 import torch
 from ssd_model import SSD300
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -82,7 +83,7 @@ def detect(original_image, min_score, max_overlap, top_k, suppress=None, gen_tra
     draw = ImageDraw.Draw(annotated_image)
     font = ImageFont.truetype("/usr/share/fonts/truetype/freefont/FreeMono.ttf", 15)
 
-    print("detected boxes: ", det_boxes.size(0))
+    # print("detected boxes: ", det_boxes.size(0))
 
     # Suppress specific classes, if needed
     for i in range(det_boxes.size(0)):
@@ -121,26 +122,33 @@ if __name__ == '__main__':
     }
 
     # Load all checkpoints from checkpoint dict and run inference on each
+    # track progress with tqdm
     for checkpoint_name, checkpoint_path in checkpoint_dict.items():
         checkpoint = torch.load(checkpoint_path)
         start_epoch = checkpoint['epoch'] + 1
-        print('\nLoaded checkpoint from epoch %d.\n' % start_epoch)
+        print('Loaded checkpoint from epoch %d.' % start_epoch)
         model.load_state_dict(checkpoint['model'])
         model = model.to(device)
         model.eval()
 
-        # /home/devansh/airlab/WIT-UAS-Asset-Detection/WIT-UAV-Dataset/2022-11-08_FIRE-SGL-108-Reade-Township_M600/2022-11-08_14-40-21_seek/time_0575.25.png
-        # /home/devansh/airlab/WIT-UAS-Asset-Detection/WIT-UAV-Dataset/2022-11-08_FIRE-SGL-108-Reade-Township_M600/2022-11-08_14-40-21_seek/time_1212.19.png
-        # img_name = "1_60_50_0_00281.jpg"
-        # img_name = "time_0098.32.png"
-        img_name = "time_0575.25.png"
-        # img_name = "time_0338.81.png"
+        # relative_path to the directory containing the images to run inference on
+        relative_path = "WIT-UAV-Dataset/2021-11-08_FIRE-SGL-174-Rossiter_M100/2021-11-07_19-19-36_flir"
+        img_ext = ".png"   # jpg for HIT, png for WIT
+        
+        # no need to modify these
+        img_path = os.path.join('./', relative_path)
+        base_save_path = os.path.join('./', "inference_results/", relative_path)
 
-        # img_path = os.path.join('./', "HIT-UAV-Infrared-Thermal-Dataset/normal_json/val/", img_name)
-        img_path = os.path.join('./', "WIT-UAV-Dataset/2022-11-08_FIRE-SGL-108-Reade-Township_M600/2022-11-08_14-40-21_seek/", img_name)
-        original_image = Image.open(img_path, mode='r')
-        original_image = original_image.convert('RGB')
-        inference = detect(original_image, min_score=0.1, max_overlap=0.5, top_k=200, suppress="noobject")#.show()
-        # save annotated image
-        save_name = f"./assets/inferences/{checkpoint_name}_{img_name.split('.')[0]}.jpg"
-        inference.save(save_name)
+        # find all .jpg images in the directory img_path
+        img_names = [f for f in os.listdir(img_path) if f.endswith(img_ext)]
+        # run inference on each image
+        for img_name in tqdm(img_names):
+            original_image = Image.open(os.path.join(img_path, img_name), mode='r')
+            original_image = original_image.convert('RGB')
+            inference = detect(original_image, min_score=0.1, max_overlap=0.5, top_k=200, suppress="noobject")
+            # save annotated image in save_path directory. create directory if it doesn't exist
+            save_path = os.path.join(base_save_path,checkpoint_name)
+            if not os.path.exists(save_path):
+                os.makedirs(save_path)
+            save_name = os.path.join(save_path, img_name)
+            inference.save(save_name)
