@@ -22,15 +22,6 @@ for param_name, param in model.named_parameters():
         else:
             not_biases.append(param)
 
-# Load model checkpoint
-checkpoint = './ssd_logs/2022_11_01__22_35_59/950_checkpoint_ssd300_state_dict.pt'
-checkpoint = torch.load(checkpoint)
-start_epoch = checkpoint['epoch'] + 1
-print('\nLoaded checkpoint from epoch %d.\n' % start_epoch)
-model.load_state_dict(checkpoint['model'])
-model = model.to(device)
-model.eval()
-
 # Transforms
 resize = transforms.Resize((300, 300))
 to_tensor = transforms.ToTensor()
@@ -38,7 +29,7 @@ normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225])
 
 
-def detect(original_image, min_score, max_overlap, top_k, suppress=None, gen_trace=True):
+def detect(original_image, min_score, max_overlap, top_k, suppress=None, gen_trace=False):
     """
     Detect objects in an image with a trained SSD300, and visualize the results.
     :param original_image: image, a PIL Image
@@ -91,6 +82,8 @@ def detect(original_image, min_score, max_overlap, top_k, suppress=None, gen_tra
     draw = ImageDraw.Draw(annotated_image)
     font = ImageFont.truetype("/usr/share/fonts/truetype/freefont/FreeMono.ttf", 15)
 
+    print("detected boxes: ", det_boxes.size(0))
+
     # Suppress specific classes, if needed
     for i in range(det_boxes.size(0)):
         if suppress is not None:
@@ -115,14 +108,39 @@ def detect(original_image, min_score, max_overlap, top_k, suppress=None, gen_tra
         draw.rectangle(xy=textbox_location, fill=label_color_map[det_labels[i]])
         draw.text(xy=text_location, text=det_labels[i].upper(), fill='white',
                   font=font)
-    del draw
+    # del draw
     plt.imshow(annotated_image)
-
     return annotated_image
 
 
 if __name__ == '__main__':
-    img_path = os.path.join('./', "HIT-UAV-Infrared-Thermal-Dataset/normal_json/val/1_60_50_0_00281.jpg")
-    original_image = Image.open(img_path, mode='r')
-    original_image = original_image.convert('RGB')
-    detect(original_image, min_score=0.2, max_overlap=0.5, top_k=200)#.show()
+    # Load model checkpoint
+    checkpoint_dict = {"HIT_SSD300": "./trained_weights/mukai_desktop_hit_230_checkpoint_ssd300_state_dict.pt",
+                    "WIT_SSD300": "./trained_weights/brady_continue_nayana_wit_160_checkpoint_ssd300_state_dict.pt",
+                    "ALL_SSD300": "./trained_weights/andrew_desktop_all_120_checkpoint_ssd300_state_dict.pt",
+    }
+
+    # Load all checkpoints from checkpoint dict and run inference on each
+    for checkpoint_name, checkpoint_path in checkpoint_dict.items():
+        checkpoint = torch.load(checkpoint_path)
+        start_epoch = checkpoint['epoch'] + 1
+        print('\nLoaded checkpoint from epoch %d.\n' % start_epoch)
+        model.load_state_dict(checkpoint['model'])
+        model = model.to(device)
+        model.eval()
+
+        # /home/devansh/airlab/WIT-UAS-Asset-Detection/WIT-UAV-Dataset/2022-11-08_FIRE-SGL-108-Reade-Township_M600/2022-11-08_14-40-21_seek/time_0575.25.png
+        # /home/devansh/airlab/WIT-UAS-Asset-Detection/WIT-UAV-Dataset/2022-11-08_FIRE-SGL-108-Reade-Township_M600/2022-11-08_14-40-21_seek/time_1212.19.png
+        # img_name = "1_60_50_0_00281.jpg"
+        # img_name = "time_0098.32.png"
+        img_name = "time_0575.25.png"
+        # img_name = "time_0338.81.png"
+
+        # img_path = os.path.join('./', "HIT-UAV-Infrared-Thermal-Dataset/normal_json/val/", img_name)
+        img_path = os.path.join('./', "WIT-UAV-Dataset/2022-11-08_FIRE-SGL-108-Reade-Township_M600/2022-11-08_14-40-21_seek/", img_name)
+        original_image = Image.open(img_path, mode='r')
+        original_image = original_image.convert('RGB')
+        inference = detect(original_image, min_score=0.1, max_overlap=0.5, top_k=200, suppress="noobject")#.show()
+        # save annotated image
+        save_name = f"./assets/inferences/{checkpoint_name}_{img_name.split('.')[0]}.jpg"
+        inference.save(save_name)
