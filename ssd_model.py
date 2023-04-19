@@ -6,7 +6,8 @@ from math import sqrt
 from itertools import product as product
 import torchvision
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cpu")
 
 
 class VGGBase(nn.Module):
@@ -337,6 +338,7 @@ class SSD300(nn.Module):
 
         # Prior boxes
         self.priors_cxcy = self.create_prior_boxes()
+        print(self.priors_cxcy)
 
     def forward(self, image):
         """
@@ -459,15 +461,15 @@ class SSD300(nn.Module):
                 n_above_min_score = score_above_min_score.sum().item()
                 if n_above_min_score == 0:
                     continue
-                class_scores = class_scores[score_above_min_score]  # (n_qualified), n_min_score <= 8732
+                qualified_class_scores = class_scores[score_above_min_score]  # (n_qualified), n_min_score <= 8732
                 class_decoded_locs = decoded_locs[score_above_min_score]  # (n_qualified, 4)
 
                 # Sort predicted boxes and scores by scores
-                class_scores, sort_ind = class_scores.sort(dim=0, descending=True)  # (n_qualified), (n_min_score)
-                class_decoded_locs = class_decoded_locs[sort_ind]  # (n_min_score, 4)
+                sorted_scores, sort_ind = qualified_class_scores.sort(dim=0, descending=True)  # (n_qualified), (n_min_score)
+                sorted_class_decoded_locs = class_decoded_locs[sort_ind]  # (n_min_score, 4)
 
                 # Find the overlap between predicted boxes
-                overlap = find_jaccard_overlap(class_decoded_locs, class_decoded_locs)  # (n_qualified, n_min_score)
+                overlap = find_jaccard_overlap(sorted_class_decoded_locs, sorted_class_decoded_locs)  # (n_qualified, n_min_score)
 
                 # Non-Maximum Suppression (NMS)
 
@@ -476,7 +478,7 @@ class SSD300(nn.Module):
                 suppress = torch.zeros((n_above_min_score), dtype=torch.bool).to(device)  # (n_qualified)
 
                 # Consider each box in order of decreasing scores
-                for box in range(class_decoded_locs.size(0)):
+                for box in range(sorted_class_decoded_locs.size(0)):
                     # If this box is already marked for suppression
                     if suppress[box] == 1:
                         continue
@@ -490,9 +492,9 @@ class SSD300(nn.Module):
                     suppress[box] = 0
 
                 # Store only unsuppressed boxes for this class
-                image_boxes.append(class_decoded_locs[~suppress])
+                image_boxes.append(sorted_class_decoded_locs[~suppress])
                 image_labels.append(torch.LongTensor((~suppress).sum().item() * [c]).to(device))
-                image_scores.append(class_scores[~suppress])
+                image_scores.append(sorted_scores[~suppress])
 
             # If no object in any class is found, store a placeholder for 'background'
             if len(image_boxes) == 0:
