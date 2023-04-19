@@ -7,7 +7,8 @@ from ssd_model import SSD300
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cpu")
 
 # Initialize model or load checkpoint
 n_classes = len(label_map)
