@@ -1,0 +1,104 @@
+---
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+
+# Don't run pre-commit on files under any thirdparty/, third_party/, third-party/, etc. sub-folders
+# But will run on directories like third/.../../party/, etc.
+exclude: (?i)^(.*third[^/]*party/.*|.*\.ts|.*\.trt)$
+
+repos:
+    - repo: https://github.com/sirosen/check-jsonschema # check-jsonschema is a github actions and workflows verifier.
+      rev: 0.23.2
+      hooks:
+          - id: check-github-actions
+          - id: check-github-workflows
+
+    - repo: https://github.com/jumanjihouse/pre-commit-hook-yamlfmt # pre-commit-hook-yamlfmt is a YAML formatter.
+      rev: 0.2.3
+      hooks:
+          - id: yamlfmt
+            exclude: (?i)(.*docker-compose.*)$ # by-pass docker-compose since the %YAML 1.2 will break it.
+    - repo: https://github.com/pre-commit/mirrors-prettier # mirrors-prettier is a prettier wrapper.
+      rev: v3.0.0
+      hooks:
+          - id: prettier
+            files: (?i)\.(html|js|css|scss|json)$
+            args:
+                - --write
+                - --ignore-path
+                - .prettierignore
+
+    - repo: https://github.com/AleksaC/hadolint-py # hadolint is a Dockerfile linter.
+      rev: v2.12.0.2
+      hooks:
+          - id: hadolint
+            args:
+                - -t
+                - error
+
+    - repo: https://github.com/scop/pre-commit-shfmt # pre-commit-shfmt formats shell scripts.
+      rev: v3.7.0-1
+      hooks:
+          - id: shfmt
+
+    - repo: https://github.com/shellcheck-py/shellcheck-py # shellcheck-py is a shellcheck wrapper.
+      rev: v0.9.0.5
+      hooks:
+          - id: shellcheck
+            args:
+                - -e
+                - SC1071,SC1091
+
+    - repo: https://github.com/psf/black # The uncompromising Python code formatter.
+      rev: 23.3.0
+      hooks:
+          - id: black
+          - id: black-jupyter
+
+    - repo: https://github.com/pre-commit/mirrors-clang-format # mirrors-clang-format is a clang-format wrapper, it can format json
+      rev: v16.0.6
+      hooks:
+          - id: clang-format
+            files: (?i)\.(h|c|hpp|cpp|hxx|cxx|cc)$
+
+    # - repo: https://github.com/pocc/pre-commit-hooks # pre-commit-hooks is a collection of additional pre-commit hooks. Using clang-tidy only for now.
+    #   rev: v1.3.5
+    #   hooks:
+    #       - id: clang-tidy
+
+    - repo: https://github.com/cheshirekow/cmake-format-precommit # cmake-format-precommit is a cmake-format wrapper.
+      rev: v0.6.13
+      hooks:
+          - id: cmake-format
+
+    - repo: https://github.com/executablebooks/mdformat # mdformat is a markdown formatter.
+      rev: 0.7.16
+      hooks:
+          - id: mdformat
+
+    - repo: https://github.com/jackdewinter/pymarkdown # pymarkdown is a markdown linter.
+      rev: v0.9.11
+      hooks:
+          - id: pymarkdown
+            args:
+                - -d
+                - MD013,MD024,MD033
+                - scan
+
+    - repo: https://github.com/pre-commit/pre-commit-hooks # pre-commit-hooks is a collection of additional pre-commit hooks.
+      rev: v4.4.0
+      hooks:
+          - id: requirements-txt-fixer # fixes requirements.txt and requirements-dev.txt.
+          - id: check-added-large-files # prevents giant files from being committed.
+          - id: check-case-conflict # checks for files that would conflict in case-insensitive filesystem.
+          - id: check-merge-conflict # checks for files that contain merge conflict strings.
+          - id: check-yaml # checks yaml files for parseable syntax.
+            args:
+                - --allow-multiple-documents
+                - --unsafe
+          - id: check-executables-have-shebangs # ensures that (non-binary) executables have a shebang.
+          - id: check-shebang-scripts-are-executable # ensures that (non-binary) files with a shebang are executable.
+          - id: end-of-file-fixer # ensures that a file is either empty, or ends with one newline.
+          - id: fix-byte-order-marker # removes utf-8 byte order marker.
+          - id: mixed-line-ending # replaces or checks mixed line ending.
+          - id: trailing-whitespace # trims trailing whitespace.

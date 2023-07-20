@@ -11,13 +11,32 @@ import torch
 from torch.autograd import Variable
 
 from yolo_model import load_model
-from yolo_utils import load_classes, ap_per_class, get_batch_statistics, non_max_suppression, xywh2xyxy, print_environment_info
+from yolo_utils import (
+    load_classes,
+    ap_per_class,
+    get_batch_statistics,
+    non_max_suppression,
+    xywh2xyxy,
+    print_environment_info,
+)
 from yolo_parse_config import parse_data_config
 
 from dataset import HITUAVDatasetTest
 
-def evaluate_model_file(model_path, weights_path, img_path, class_names, batch_size=8, img_size=416,
-                        n_cpu=8, iou_thres=0.5, conf_thres=0.5, nms_thres=0.5, verbose=True):
+
+def evaluate_model_file(
+    model_path,
+    weights_path,
+    img_path,
+    class_names,
+    batch_size=8,
+    img_size=416,
+    n_cpu=8,
+    iou_thres=0.5,
+    conf_thres=0.5,
+    nms_thres=0.5,
+    verbose=True,
+):
     """Evaluate model on validation dataset.
     :param model_path: Path to model definition file (.cfg)
     :type model_path: str
@@ -45,9 +64,14 @@ def evaluate_model_file(model_path, weights_path, img_path, class_names, batch_s
     """
     workers = 4  # number of workers for loading data in the DataLoader
     val_dataset = HITUAVDatasetTest(img_path, yolo=True)
-    dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=True,
-                                               collate_fn=val_dataset.yolo_collate_fn, num_workers=workers,
-                                               pin_memory=True)  # note that we're passing the collate function here
+    dataloader = torch.utils.data.DataLoader(
+        val_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        collate_fn=val_dataset.yolo_collate_fn,
+        num_workers=workers,
+        pin_memory=True,
+    )  # note that we're passing the collate function here
     model = load_model(model_path, weights_path)
     metrics_output = _evaluate(
         model,
@@ -57,7 +81,8 @@ def evaluate_model_file(model_path, weights_path, img_path, class_names, batch_s
         iou_thres,
         conf_thres,
         nms_thres,
-        verbose)
+        verbose,
+    )
     return metrics_output
 
 
@@ -75,7 +100,17 @@ def print_eval_stats(metrics_output, class_names, verbose):
         print("---- mAP not measured (no detections found by model) ----")
 
 
-def _evaluate(model, dataloader, class_names, img_size, iou_thres, conf_thres, nms_thres, verbose, epoch):
+def _evaluate(
+    model,
+    dataloader,
+    class_names,
+    img_size,
+    iou_thres,
+    conf_thres,
+    nms_thres,
+    verbose,
+    epoch,
+):
     """Evaluate model on validation dataset.
     :param model: Model to evaluate
     :type model: models.Darknet
@@ -101,7 +136,7 @@ def _evaluate(model, dataloader, class_names, img_size, iou_thres, conf_thres, n
 
     labels = []
     sample_metrics = []  # List of tuples (TP, confs, pred)
-    image_list = [] # for wandb slider visualization
+    image_list = []  # for wandb slider visualization
     for batch_i, (imgs, targets) in enumerate(tqdm.tqdm(dataloader, desc="Validating")):
         # Extract labels
         labels += targets[:, 1].tolist()
@@ -113,19 +148,27 @@ def _evaluate(model, dataloader, class_names, img_size, iou_thres, conf_thres, n
 
         with torch.no_grad():
             outputs = model(imgs)
-            outputs = non_max_suppression(outputs, conf_thres=conf_thres, iou_thres=nms_thres)
+            outputs = non_max_suppression(
+                outputs, conf_thres=conf_thres, iou_thres=nms_thres
+            )
 
-        sample_metrics += get_batch_statistics(outputs, targets, iou_threshold=iou_thres)
+        sample_metrics += get_batch_statistics(
+            outputs, targets, iou_threshold=iou_thres
+        )
 
-        wandb_logger.add_batch(images=imgs,
-                               predictions=outputs,
-                               ground_truths=[targets[targets[:, 0] == image_index][:, 1:] for image_index in range(int(targets[0, 0]), int(targets[-1, 0] + 1))], # change to list of tensor each contain boxes of its image
-                               class_id_to_label={id: name for id, name in enumerate(class_names)},
-                               image_list=image_list,
-                               box_unit="pixel") # add batch to image list before bulk upload
-    
-    wandb_logger.log({"eval/images": image_list,
-                      "epoch": epoch})
+        wandb_logger.add_batch(
+            images=imgs,
+            predictions=outputs,
+            ground_truths=[
+                targets[targets[:, 0] == image_index][:, 1:]
+                for image_index in range(int(targets[0, 0]), int(targets[-1, 0] + 1))
+            ],  # change to list of tensor each contain boxes of its image
+            class_id_to_label={id: name for id, name in enumerate(class_names)},
+            image_list=image_list,
+            box_unit="pixel",
+        )  # add batch to image list before bulk upload
+
+    wandb_logger.log({"eval/images": image_list, "epoch": epoch})
 
     if len(sample_metrics) == 0:  # No detections over whole validation set.
         print("---- No detections over whole validation set ----")
@@ -133,16 +176,16 @@ def _evaluate(model, dataloader, class_names, img_size, iou_thres, conf_thres, n
 
     # Concatenate sample statistics
     true_positives, pred_scores, pred_labels = [
-        np.concatenate(x, 0) for x in list(zip(*sample_metrics))]
-    metrics_output = ap_per_class(
-        true_positives, pred_scores, pred_labels, labels)
+        np.concatenate(x, 0) for x in list(zip(*sample_metrics))
+    ]
+    metrics_output = ap_per_class(true_positives, pred_scores, pred_labels, labels)
 
     print_eval_stats(metrics_output, class_names, verbose)
 
     return metrics_output
 
 
-def _create_validation_data_loader(data_folder = './', batch_size = 8, workers = 4):
+def _create_validation_data_loader(data_folder="./", batch_size=8, workers=4):
     """
     Creates a DataLoader for validation.
     :param img_path: Path to file containing all paths to validation images.
@@ -157,32 +200,81 @@ def _create_validation_data_loader(data_folder = './', batch_size = 8, workers =
     :rtype: DataLoader
     """
     test_dataset = HITUAVDatasetTest(data_folder)
-    dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True,
-                                               collate_fn=test_dataset.collate_fn, num_workers=workers,
-                                               pin_memory=True)  # note that we're passing the collate function here
+    dataloader = torch.utils.data.DataLoader(
+        test_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        collate_fn=test_dataset.collate_fn,
+        num_workers=workers,
+        pin_memory=True,
+    )  # note that we're passing the collate function here
     return dataloader
 
 
 def run():
     print_environment_info()
     parser = argparse.ArgumentParser(description="Evaluate validation data.")
-    parser.add_argument("-m", "--model", type=str, default="yolov3-custom.cfg", help="Path to model definition file (.cfg)")
-    parser.add_argument("-w", "--weights", type=str, default="yolo_logs/2022_11_01__01_56_27/yolov3_ckpt_900.pth", help="Path to weights or checkpoint file (.weights or .pth)")
-    parser.add_argument("-d", "--data", type=str, default="hit.data", help="Path to data config file (.data)")
-    parser.add_argument("-b", "--batch_size", type=int, default=8, help="Size of each image batch")
-    parser.add_argument("-v", "--verbose", action='store_true', help="Makes the validation more verbose")
-    parser.add_argument("--img_size", type=int, default=416, help="Size of each image dimension for yolo")
-    parser.add_argument("--n_cpu", type=int, default=8, help="Number of cpu threads to use during batch generation")
-    parser.add_argument("--iou_thres", type=float, default=0.5, help="IOU threshold required to qualify as detected")
-    parser.add_argument("--conf_thres", type=float, default=0.01, help="Object confidence threshold")
-    parser.add_argument("--nms_thres", type=float, default=0.4, help="IOU threshold for non-maximum suppression")
+    parser.add_argument(
+        "-m",
+        "--model",
+        type=str,
+        default="yolov3-custom.cfg",
+        help="Path to model definition file (.cfg)",
+    )
+    parser.add_argument(
+        "-w",
+        "--weights",
+        type=str,
+        default="yolo_logs/2022_11_01__01_56_27/yolov3_ckpt_900.pth",
+        help="Path to weights or checkpoint file (.weights or .pth)",
+    )
+    parser.add_argument(
+        "-d",
+        "--data",
+        type=str,
+        default="hit.data",
+        help="Path to data config file (.data)",
+    )
+    parser.add_argument(
+        "-b", "--batch_size", type=int, default=8, help="Size of each image batch"
+    )
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", help="Makes the validation more verbose"
+    )
+    parser.add_argument(
+        "--img_size",
+        type=int,
+        default=416,
+        help="Size of each image dimension for yolo",
+    )
+    parser.add_argument(
+        "--n_cpu",
+        type=int,
+        default=8,
+        help="Number of cpu threads to use during batch generation",
+    )
+    parser.add_argument(
+        "--iou_thres",
+        type=float,
+        default=0.5,
+        help="IOU threshold required to qualify as detected",
+    )
+    parser.add_argument(
+        "--conf_thres", type=float, default=0.01, help="Object confidence threshold"
+    )
+    parser.add_argument(
+        "--nms_thres",
+        type=float,
+        default=0.4,
+        help="IOU threshold for non-maximum suppression",
+    )
     args = parser.parse_args()
     print(f"Command line arguments: {args}")
 
     # Load configuration from data file
     data_config = parse_data_config("dataset.cfg")
     # Path to file containing all images for validation
-    valid_path = './'
+    valid_path = "./"
     class_names = load_classes(data_config["names"])  # List of class names
 
     precision, recall, AP, f1, ap_class = evaluate_model_file(
@@ -196,7 +288,8 @@ def run():
         iou_thres=args.iou_thres,
         conf_thres=args.conf_thres,
         nms_thres=args.nms_thres,
-        verbose=True)
+        verbose=True,
+    )
     print(AP.mean())
 
 

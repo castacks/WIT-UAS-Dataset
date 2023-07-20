@@ -1,4 +1,4 @@
-## data folder
+# data folder
 
 储存各个文件的路径
 
@@ -16,7 +16,7 @@
 
 | ~~FolderPath~~ | ~~Width~~   | ~~Height~~  | ~~Scenario~~            | ~~Weather~~            | ~~Perspective~~        | ~~Altitude~~ | ~~Date~~      |
 | -------------- | ----------- | ----------- | ----------------------- | ---------------------- | ---------------------- | ------------ | ------------- |
-| ~~str~~        | ~~int[px]~~ | ~~int[px]~~ | ~~int[scenario index]~~ | ~~int[weather index]~~ | ~~int angle [degree]~~ | ~~int[m]~~   | ~~data,time~~ |
+| ~~str~~        | ~~int\[px\]~~ | ~~int\[px\]~~ | ~~int\[scenario index\]~~ | ~~int\[weather index\]~~ | ~~int angle \[degree\]~~ | ~~int\[m\]~~   | ~~data,time~~ |
 
 ## info.txt
 
@@ -44,7 +44,7 @@
 
 按行储存信息
 
-| information[str] |
+| information\[str\] |
 | ---------------- |
 | Day              |
 | Night            |
@@ -53,7 +53,7 @@
 
 按行存储信息，**保留项**。
 
-| information[str] |
+| information\[str\] |
 | ---------------- |
 | Sunny            |
 | Rainy            |
@@ -62,7 +62,7 @@
 
 按行存储信息。
 
-| information[str] |
+| information\[str\] |
 | ---------------- |
 | Person           |
 | Car              |
@@ -74,8 +74,7 @@
 
 Template: **1_60_30_0_00000.jpg**。若保存日期，在角度文件夹下建立子文件夹，文件格式为20201222，然后讲相应文件放入子文件夹中。日期为可选择项。
 
-|      | Scenario(Day/Night) |    Altitude[m]     |  Perspective[°]   |    Weather(TBD)    |  ID  | Extention |
+|      | Scenario(Day/Night) |    Altitude\[m\]     |  Perspective\[°\]   |    Weather(TBD)    |  ID  | Extention |
 | :--: | :-----------------: | :----------------: | :---------------: | :----------------: | :--: | :-------: |
 | Info |   Day:0, Night:1    | range(60, 130, 10) | range(30, 90, 10) | Sunny: 0, Rainy: 1 | %05d |   .jpg    |
 | Type |         int         |        int         |        int        |        int         | int  |           |
-

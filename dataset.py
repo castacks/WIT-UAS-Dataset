@@ -8,67 +8,99 @@ import torchvision.transforms as transforms
 import collections
 import csv
 
+
 def clamp(n, minn, maxn):
     return max(min(maxn, n), minn)
+
 
 class HITUAVDatasetTrain(torch.utils.data.Dataset):
     def __init__(self, root, yolo=False, yolo_dim=[416, 416], image_transform=None):
         self.yolo = yolo
         self.yolo_dim = yolo_dim
         self.root = root
-        self.imgs_train = os.path.join(root, "HIT-UAV-Infrared-Thermal-Dataset/normal_json/train/")
+        self.imgs_train = os.path.join(
+            root, "HIT-UAV-Infrared-Thermal-Dataset/normal_json/train/"
+        )
         self.imgs_train_list = list(sorted(os.listdir(self.imgs_train)))
-        self.annotations_file = os.path.join(root, "HIT-UAV-Infrared-Thermal-Dataset/normal_json/annotations/train.json")
+        self.annotations_file = os.path.join(
+            root, "HIT-UAV-Infrared-Thermal-Dataset/normal_json/annotations/train.json"
+        )
         self.annotations_json = json.load(open(self.annotations_file))
-        self.annotations_bbox_category = self.annotations_json['annotation']
-        self.imgs_train_name_ids = self.annotations_json['images']
+        self.annotations_bbox_category = self.annotations_json["annotation"]
+        self.imgs_train_name_ids = self.annotations_json["images"]
 
         self.image_transform = image_transform
-    
+
     def __len__(self):
         return len(self.imgs_train_list)
-    
+
     def __getitem__(self, idx):
         img_name_id = self.imgs_train_name_ids[idx]
         # print(img_name_id)
-        img_name = img_name_id['filename']
-        image = Image.open(os.path.join(self.imgs_train, img_name), mode='r').convert('RGB')
-        objects_dict = [x for x in self.annotations_bbox_category if x['image_id'] == img_name_id['id']]
+        img_name = img_name_id["filename"]
+        image = Image.open(os.path.join(self.imgs_train, img_name), mode="r").convert(
+            "RGB"
+        )
+        objects_dict = [
+            x
+            for x in self.annotations_bbox_category
+            if x["image_id"] == img_name_id["id"]
+        ]
         bboxes_list = []
         labels_list = []
         for object in objects_dict:
-            bbox = object['bbox'] # ! original format: [center_x, center_y, width, height] in pixel
+            bbox = object[
+                "bbox"
+            ]  # ! original format: [center_x, center_y, width, height] in pixel
 
             # the released HIT dataset is bugged, it appears the center has been placed in the top left corner. Therefore we need to add the offset to the center, which is equal to half the width and height. TODO: email them
             w, h = bbox[2], bbox[3]
             # MAKES A COPY, don't modify the original
-            bbox = [bbox[0] + w/2, bbox[1] + h/2, bbox[2], bbox[3]]
+            bbox = [bbox[0] + w / 2, bbox[1] + h / 2, bbox[2], bbox[3]]
 
-            if self.yolo == False: # SSD
-                xmin = (bbox[0] - bbox[2]/2) if (bbox[0] - bbox[2]/2)/640 >= 0 else 0
-                ymin = (bbox[1] - bbox[3]/2) if (bbox[1] - bbox[3]/2)/512 >= 0 else 0
-                xmax = (bbox[0] + bbox[2]/2) if (bbox[0] + bbox[2]/2)/640 <= 1 else 640
-                ymax = (bbox[1] + bbox[3]/2) if (bbox[1] + bbox[3]/2)/512 <= 1 else 512
+            if self.yolo == False:  # SSD
+                xmin = (
+                    (bbox[0] - bbox[2] / 2) if (bbox[0] - bbox[2] / 2) / 640 >= 0 else 0
+                )
+                ymin = (
+                    (bbox[1] - bbox[3] / 2) if (bbox[1] - bbox[3] / 2) / 512 >= 0 else 0
+                )
+                xmax = (
+                    (bbox[0] + bbox[2] / 2)
+                    if (bbox[0] + bbox[2] / 2) / 640 <= 1
+                    else 640
+                )
+                ymax = (
+                    (bbox[1] + bbox[3] / 2)
+                    if (bbox[1] + bbox[3] / 2) / 512 <= 1
+                    else 512
+                )
                 bbox = [xmin, ymin, xmax, ymax]
-            else: # YOLO
+            else:  # YOLO
                 bbox = [
-                    clamp(bbox[0]/640, 0, 1), 
-                    clamp(bbox[1]/512, 0, 1), 
-                    clamp(bbox[2]/640, 0, 1),
-                    clamp(bbox[3]/512, 0, 1)
-                    ]
+                    clamp(bbox[0] / 640, 0, 1),
+                    clamp(bbox[1] / 512, 0, 1),
+                    clamp(bbox[2] / 640, 0, 1),
+                    clamp(bbox[3] / 512, 0, 1),
+                ]
 
             bboxes_list.append(bbox)
-            labels_list.append(object['category_id'] + 1)
+            labels_list.append(object["category_id"] + 1)
 
         # transforms
         if self.image_transform:
             # print("Bbox list: ", bboxes_list)
             # print("Labels list",  )
-            transformed = self.image_transform(image=np.array(image), bboxes = bboxes_list, labels = labels_list)
+            transformed = self.image_transform(
+                image=np.array(image), bboxes=bboxes_list, labels=labels_list
+            )
             image = Image.fromarray(transformed["image"])
-            bboxes_list = [list(t) if type(t) is tuple else t for t in transformed["bboxes"]]
-            labels_list = [list(t) if type(t) is tuple else t for t in transformed["labels"]]
+            bboxes_list = [
+                list(t) if type(t) is tuple else t for t in transformed["bboxes"]
+            ]
+            labels_list = [
+                list(t) if type(t) is tuple else t for t in transformed["labels"]
+            ]
 
         if len(bboxes_list) == 0 and len(labels_list) == 0:
             if self.yolo == False:  # SSD
@@ -76,13 +108,12 @@ class HITUAVDatasetTrain(torch.utils.data.Dataset):
                 label = 6  # nothing
                 bboxes_list.append(bbox)
                 labels_list.append(label)
-            else: # YOLO
+            else:  # YOLO
                 bbox = [0.5, 0.5, 1, 1]
                 label = 5
                 bboxes_list.append(bbox)
                 labels_list.append(label)
 
-    
         if self.yolo == False:  # SSD
             boxes = torch.FloatTensor(bboxes_list)
             labels = torch.LongTensor(labels_list)
@@ -103,7 +134,7 @@ class HITUAVDatasetTrain(torch.utils.data.Dataset):
             image = np.array(image, dtype=np.uint8)
             image = transforms.ToTensor()(image)
             return image, bb_targets
-    
+
     def collate_fn(self, batch):
         images = list()
         boxes = list()
@@ -114,7 +145,7 @@ class HITUAVDatasetTrain(torch.utils.data.Dataset):
             labels.append(b[2])
         images = torch.stack(images, dim=0)
         return images, boxes, labels
-    
+
     def yolo_collate_fn(self, batch):
         # self.batch_count += 1
 
@@ -138,7 +169,7 @@ class HITUAVDatasetTrain(torch.utils.data.Dataset):
         bb_targets = torch.cat(bb_targets, 0)
 
         return imgs, bb_targets
-    
+
     def resize(self, image, boxes, dims=[300, 300], return_percent_coords=True):
         """
         Resize image. For the SSD300, resize to (300, 300).
@@ -153,58 +184,85 @@ class HITUAVDatasetTrain(torch.utils.data.Dataset):
             new_image = FT.resize(image, dims)
 
             # Resize bounding boxes
-            old_dims = torch.FloatTensor([image.width, image.height, image.width, image.height]).unsqueeze(0)
+            old_dims = torch.FloatTensor(
+                [image.width, image.height, image.width, image.height]
+            ).unsqueeze(0)
             new_boxes = boxes / old_dims  # percent coordinates
 
             if not return_percent_coords:
-                new_dims = torch.FloatTensor([dims[1], dims[0], dims[1], dims[0]]).unsqueeze(0)
+                new_dims = torch.FloatTensor(
+                    [dims[1], dims[0], dims[1], dims[0]]
+                ).unsqueeze(0)
                 new_boxes = new_boxes * new_dims
 
             return new_image, new_boxes
         except:
-            print('unexpected error')
+            print("unexpected error")
             return new_image, boxes
+
 
 class HITUAVDatasetVal(torch.utils.data.Dataset):
     def __init__(self, root, yolo=False, yolo_dim=[416, 416]):
         self.yolo = yolo
         self.yolo_dim = yolo_dim
         self.root = root
-        self.imgs_train = os.path.join(root, "HIT-UAV-Infrared-Thermal-Dataset/normal_json/val/")
+        self.imgs_train = os.path.join(
+            root, "HIT-UAV-Infrared-Thermal-Dataset/normal_json/val/"
+        )
         self.imgs_train_list = list(sorted(os.listdir(self.imgs_train)))
-        self.annotations_file = os.path.join(root, "HIT-UAV-Infrared-Thermal-Dataset/normal_json/annotations/val.json")
+        self.annotations_file = os.path.join(
+            root, "HIT-UAV-Infrared-Thermal-Dataset/normal_json/annotations/val.json"
+        )
         self.annotations_json = json.load(open(self.annotations_file))
-        self.annotations_bbox_category = self.annotations_json['annotation']
-        self.imgs_train_name_ids = self.annotations_json['images']
-    
+        self.annotations_bbox_category = self.annotations_json["annotation"]
+        self.imgs_train_name_ids = self.annotations_json["images"]
+
     def __len__(self):
         return len(self.imgs_train_list)
-    
+
     def __getitem__(self, idx):
         img_name_id = self.imgs_train_name_ids[idx]
-        img_name = img_name_id['filename']
-        image = Image.open(os.path.join(self.imgs_train, img_name), mode='r').convert('RGB')
-        objects_dict = [x for x in self.annotations_bbox_category if x['image_id'] == img_name_id['id']]
+        img_name = img_name_id["filename"]
+        image = Image.open(os.path.join(self.imgs_train, img_name), mode="r").convert(
+            "RGB"
+        )
+        objects_dict = [
+            x
+            for x in self.annotations_bbox_category
+            if x["image_id"] == img_name_id["id"]
+        ]
         bboxes_list = []
         labels_list = []
         for object in objects_dict:
-            bbox = object['bbox']
+            bbox = object["bbox"]
 
             # the released HIT dataset is bugged, it appears the center has been placed in the top left corner. Therefore we need to add the offset to the center, which is equal to half the width and height. TODO: email them
             w, h = bbox[2], bbox[3]
             # MAKES A COPY, don't modify the original
-            bbox = [bbox[0] + w/2, bbox[1] + h/2, bbox[2], bbox[3]]
+            bbox = [bbox[0] + w / 2, bbox[1] + h / 2, bbox[2], bbox[3]]
 
-            if self.yolo == False: # SSD
-                xmin = (bbox[0] - bbox[2]/2) if (bbox[0] - bbox[2]/2)/640 >= 0 else 0
-                ymin = (bbox[1] - bbox[3]/2) if (bbox[1] - bbox[3]/2)/512 >= 0 else 0
-                xmax = (bbox[0] + bbox[2]/2) if (bbox[0] + bbox[2]/2)/640 <= 1 else 640
-                ymax = (bbox[1] + bbox[3]/2) if (bbox[1] + bbox[3]/2)/512 <= 1 else 512
+            if self.yolo == False:  # SSD
+                xmin = (
+                    (bbox[0] - bbox[2] / 2) if (bbox[0] - bbox[2] / 2) / 640 >= 0 else 0
+                )
+                ymin = (
+                    (bbox[1] - bbox[3] / 2) if (bbox[1] - bbox[3] / 2) / 512 >= 0 else 0
+                )
+                xmax = (
+                    (bbox[0] + bbox[2] / 2)
+                    if (bbox[0] + bbox[2] / 2) / 640 <= 1
+                    else 640
+                )
+                ymax = (
+                    (bbox[1] + bbox[3] / 2)
+                    if (bbox[1] + bbox[3] / 2) / 512 <= 1
+                    else 512
+                )
                 bbox = [xmin, ymin, xmax, ymax]
-            else: # YOLO, normalize coordinates
-                bbox = [bbox[0]/640, bbox[1]/512, bbox[2]/640, bbox[3]/512]
+            else:  # YOLO, normalize coordinates
+                bbox = [bbox[0] / 640, bbox[1] / 512, bbox[2] / 640, bbox[3] / 512]
             bboxes_list.append(bbox)
-            labels_list.append(object['category_id'] + 1)
+            labels_list.append(object["category_id"] + 1)
         if len(bboxes_list) == 0 and len(labels_list) == 0:
             if self.yolo == False:
                 bbox = [0, 0, 640, 512]
@@ -236,7 +294,7 @@ class HITUAVDatasetVal(torch.utils.data.Dataset):
             image = np.array(image, dtype=np.uint8)
             image = transforms.ToTensor()(image)
             return image, bb_targets
-    
+
     def collate_fn(self, batch):
         images = list()
         boxes = list()
@@ -247,7 +305,7 @@ class HITUAVDatasetVal(torch.utils.data.Dataset):
             labels.append(b[2])
         images = torch.stack(images, dim=0)
         return images, boxes, labels
-    
+
     def yolo_collate_fn(self, batch):
         # self.batch_count += 1
 
@@ -271,7 +329,7 @@ class HITUAVDatasetVal(torch.utils.data.Dataset):
         bb_targets = torch.cat(bb_targets, 0)
 
         return imgs, bb_targets
-    
+
     def resize(self, image, boxes, dims=[300, 300], return_percent_coords=True):
         """
         Resize image. For the SSD300, resize to (300, 300).
@@ -286,58 +344,85 @@ class HITUAVDatasetVal(torch.utils.data.Dataset):
             new_image = FT.resize(image, dims)
 
             # Resize bounding boxes
-            old_dims = torch.FloatTensor([image.width, image.height, image.width, image.height]).unsqueeze(0)
+            old_dims = torch.FloatTensor(
+                [image.width, image.height, image.width, image.height]
+            ).unsqueeze(0)
             new_boxes = boxes / old_dims  # percent coordinates
 
             if not return_percent_coords:
-                new_dims = torch.FloatTensor([dims[1], dims[0], dims[1], dims[0]]).unsqueeze(0)
+                new_dims = torch.FloatTensor(
+                    [dims[1], dims[0], dims[1], dims[0]]
+                ).unsqueeze(0)
                 new_boxes = new_boxes * new_dims
 
             return new_image, new_boxes
         except:
-            print('unexpected error')
+            print("unexpected error")
             return new_image, boxes
+
 
 class HITUAVDatasetTest(torch.utils.data.Dataset):
     def __init__(self, root, yolo=False, yolo_dim=[416, 416]):
         self.yolo = yolo
         self.yolo_dim = yolo_dim
         self.root = root
-        self.imgs_train = os.path.join(root, "HIT-UAV-Infrared-Thermal-Dataset/normal_json/test/")
+        self.imgs_train = os.path.join(
+            root, "HIT-UAV-Infrared-Thermal-Dataset/normal_json/test/"
+        )
         self.imgs_train_list = list(sorted(os.listdir(self.imgs_train)))
-        self.annotations_file = os.path.join(root, "HIT-UAV-Infrared-Thermal-Dataset/normal_json/annotations/test.json")
+        self.annotations_file = os.path.join(
+            root, "HIT-UAV-Infrared-Thermal-Dataset/normal_json/annotations/test.json"
+        )
         self.annotations_json = json.load(open(self.annotations_file))
-        self.annotations_bbox_category = self.annotations_json['annotation']
-        self.imgs_train_name_ids = self.annotations_json['images']
-    
+        self.annotations_bbox_category = self.annotations_json["annotation"]
+        self.imgs_train_name_ids = self.annotations_json["images"]
+
     def __len__(self):
         return len(self.imgs_train_list)
-    
+
     def __getitem__(self, idx):
         img_name_id = self.imgs_train_name_ids[idx]
-        img_name = img_name_id['filename']
-        image = Image.open(os.path.join(self.imgs_train, img_name), mode='r').convert('RGB')
-        objects_dict = [x for x in self.annotations_bbox_category if x['image_id'] == img_name_id['id']]
+        img_name = img_name_id["filename"]
+        image = Image.open(os.path.join(self.imgs_train, img_name), mode="r").convert(
+            "RGB"
+        )
+        objects_dict = [
+            x
+            for x in self.annotations_bbox_category
+            if x["image_id"] == img_name_id["id"]
+        ]
         bboxes_list = []
         labels_list = []
         for object in objects_dict:
-            bbox = object['bbox']
+            bbox = object["bbox"]
 
             # the released HIT dataset is bugged, it appears the center has been placed in the top left corner. Therefore we need to add the offset to the center, which is equal to half the width and height. TODO: email them
             w, h = bbox[2], bbox[3]
             # MAKES A COPY, don't modify the original
-            bbox = [bbox[0] + w/2, bbox[1] + h/2, bbox[2], bbox[3]]
+            bbox = [bbox[0] + w / 2, bbox[1] + h / 2, bbox[2], bbox[3]]
 
             if self.yolo == False:
-                xmin = (bbox[0] - bbox[2]/2) if (bbox[0] - bbox[2]/2)/640 >= 0 else 0
-                ymin = (bbox[1] - bbox[3]/2) if (bbox[1] - bbox[3]/2)/512 >= 0 else 0
-                xmax = (bbox[0] + bbox[2]/2) if (bbox[0] + bbox[2]/2)/640 <= 1 else 640
-                ymax = (bbox[1] + bbox[3]/2) if (bbox[1] + bbox[3]/2)/512 <= 1 else 512
+                xmin = (
+                    (bbox[0] - bbox[2] / 2) if (bbox[0] - bbox[2] / 2) / 640 >= 0 else 0
+                )
+                ymin = (
+                    (bbox[1] - bbox[3] / 2) if (bbox[1] - bbox[3] / 2) / 512 >= 0 else 0
+                )
+                xmax = (
+                    (bbox[0] + bbox[2] / 2)
+                    if (bbox[0] + bbox[2] / 2) / 640 <= 1
+                    else 640
+                )
+                ymax = (
+                    (bbox[1] + bbox[3] / 2)
+                    if (bbox[1] + bbox[3] / 2) / 512 <= 1
+                    else 512
+                )
                 bbox = [xmin, ymin, xmax, ymax]
             else:
-                bbox = [bbox[0]/640, bbox[1]/512, bbox[2]/640, bbox[3]/512]
+                bbox = [bbox[0] / 640, bbox[1] / 512, bbox[2] / 640, bbox[3] / 512]
             bboxes_list.append(bbox)
-            labels_list.append(object['category_id'] + 1)
+            labels_list.append(object["category_id"] + 1)
         if len(bboxes_list) == 0 and len(labels_list) == 0:
             if self.yolo == False:
                 bbox = [0, 0, 640, 512]
@@ -369,7 +454,7 @@ class HITUAVDatasetTest(torch.utils.data.Dataset):
             image = np.array(image, dtype=np.uint8)
             image = transforms.ToTensor()(image)
             return image, bb_targets
-    
+
     def collate_fn(self, batch):
         images = list()
         boxes = list()
@@ -380,7 +465,7 @@ class HITUAVDatasetTest(torch.utils.data.Dataset):
             labels.append(b[2])
         images = torch.stack(images, dim=0)
         return images, boxes, labels
-    
+
     def yolo_collate_fn(self, batch):
         # self.batch_count += 1
 
@@ -404,7 +489,7 @@ class HITUAVDatasetTest(torch.utils.data.Dataset):
         bb_targets = torch.cat(bb_targets, 0)
 
         return imgs, bb_targets
-    
+
     def resize(self, image, boxes, dims=[300, 300], return_percent_coords=True):
         """
         Resize image. For the SSD300, resize to (300, 300).
@@ -419,20 +504,27 @@ class HITUAVDatasetTest(torch.utils.data.Dataset):
             new_image = FT.resize(image, dims)
 
             # Resize bounding boxes
-            old_dims = torch.FloatTensor([image.width, image.height, image.width, image.height]).unsqueeze(0)
+            old_dims = torch.FloatTensor(
+                [image.width, image.height, image.width, image.height]
+            ).unsqueeze(0)
             new_boxes = boxes / old_dims  # percent coordinates
 
             if not return_percent_coords:
-                new_dims = torch.FloatTensor([dims[1], dims[0], dims[1], dims[0]]).unsqueeze(0)
+                new_dims = torch.FloatTensor(
+                    [dims[1], dims[0], dims[1], dims[0]]
+                ).unsqueeze(0)
                 new_boxes = new_boxes * new_dims
 
             return new_image, new_boxes
         except:
-            print('unexpected error')
+            print("unexpected error")
             return new_image, boxes
 
+
 class WITUAVDataset(torch.utils.data.Dataset):
-    def __init__(self, root, sensor="both", yolo=False, yolo_dim=[416, 416], image_transform=None):
+    def __init__(
+        self, root, sensor="both", yolo=False, yolo_dim=[416, 416], image_transform=None
+    ):
         """load WIT-UAV-Dataset
 
         Args:
@@ -451,9 +543,11 @@ class WITUAVDataset(torch.utils.data.Dataset):
             if root.endswith(sensor):
                 for name in files:
                     if name.endswith((".png", ".jpg")):
-                        expected_label = (os.path.splitext(name)[0] + '.label')
+                        expected_label = os.path.splitext(name)[0] + ".label"
                         if expected_label in files:
-                            self.images[os.path.join(root, name)] =  os.path.join(root, expected_label)
+                            self.images[os.path.join(root, name)] = os.path.join(
+                                root, expected_label
+                            )
                         else:
                             self.images[os.path.join(root, name)] = False
         self.images = collections.OrderedDict(sorted(self.images.items()))
@@ -465,43 +559,62 @@ class WITUAVDataset(torch.utils.data.Dataset):
         image_height = image_size[1]
         bboxes = []
         labels = []
-        if not label_path: # this image doesn't have associated .label file
+        if not label_path:  # this image doesn't have associated .label file
             return bboxes, labels
 
-        with open(label_path) as file: # ! can be empty file, i.e. no bounding boxes/labels
-            lines = csv.reader(file, delimiter=' ')
-            for row in lines: # ! original format: [min_x, min_y, max_x, max_y, class_code]
-                row[:-1] = [float(i) for i in row[:-1]] # enforcing int type
-                if row[0] == row[2] or row[1] == row[3]: # ! skip invalid bounding box
+        with open(
+            label_path
+        ) as file:  # ! can be empty file, i.e. no bounding boxes/labels
+            lines = csv.reader(file, delimiter=" ")
+            for (
+                row
+            ) in lines:  # ! original format: [min_x, min_y, max_x, max_y, class_code]
+                row[:-1] = [float(i) for i in row[:-1]]  # enforcing int type
+                if row[0] == row[2] or row[1] == row[3]:  # ! skip invalid bounding box
                     continue
-                if not self.yolo: # ! SSD bounding box eats: [min_x, min_y, max_x, max_y] in pixel
+                if (
+                    not self.yolo
+                ):  # ! SSD bounding box eats: [min_x, min_y, max_x, max_y] in pixel
                     bbox = row[:-1]
-                else: # ! YOLO bounding box eats: [center_x_ratio, center_y_ratio, box_width_ratio, box_height_ratio]
+                else:  # ! YOLO bounding box eats: [center_x_ratio, center_y_ratio, box_width_ratio, box_height_ratio]
                     center_x_ratio = (row[0] + row[2]) / 2 / image_width
                     center_y_ratio = (row[1] + row[3]) / 2 / image_height
                     box_width_ratio = (row[2] - row[0]) / image_width
                     box_height_ratio = (row[3] - row[1]) / image_height
-                    bbox = [center_x_ratio, center_y_ratio, box_width_ratio, box_height_ratio]
+                    bbox = [
+                        center_x_ratio,
+                        center_y_ratio,
+                        box_width_ratio,
+                        box_height_ratio,
+                    ]
                 bboxes.append(bbox)
-                labels.append(1 if row[-1] == 'h' else 2) # right now 'v' or 'h' #! hard code due to messy class_name import: person ('h') <=> 1; car ('v') <=> 2
+                labels.append(
+                    1 if row[-1] == "h" else 2
+                )  # right now 'v' or 'h' #! hard code due to messy class_name import: person ('h') <=> 1; car ('v') <=> 2
 
         return bboxes, labels
-    
+
     def __len__(self):
         return len(self.images)
-    
+
     def __getitem__(self, idx):
         image_label_path = list(self.images.items())[idx]
-        image = Image.open(image_label_path[0], mode='r').convert('RGB')
+        image = Image.open(image_label_path[0], mode="r").convert("RGB")
         bboxes_list, labels_list = self.read_label(image_label_path[1], image.size)
-        
+
         # transforms
         if self.image_transform:
-            transformed = self.image_transform(image=np.array(image), bboxes = bboxes_list, labels = labels_list)
+            transformed = self.image_transform(
+                image=np.array(image), bboxes=bboxes_list, labels=labels_list
+            )
             image = Image.fromarray(transformed["image"])
             # list of tuple to list of lists
-            bboxes_list = [list(t) if type(t) is tuple else t for t in transformed["bboxes"]]
-            labels_list = [list(t) if type(t) is tuple else t for t in transformed["labels"]]
+            bboxes_list = [
+                list(t) if type(t) is tuple else t for t in transformed["bboxes"]
+            ]
+            labels_list = [
+                list(t) if type(t) is tuple else t for t in transformed["labels"]
+            ]
 
         if len(bboxes_list) == 0 and len(labels_list) == 0:
             if self.yolo == False:
@@ -534,7 +647,7 @@ class WITUAVDataset(torch.utils.data.Dataset):
             image = np.array(image, dtype=np.uint8)
             image = transforms.ToTensor()(image)
             return image, bb_targets
-    
+
     def collate_fn(self, batch):
         images = list()
         boxes = list()
@@ -545,7 +658,7 @@ class WITUAVDataset(torch.utils.data.Dataset):
             labels.append(b[2])
         images = torch.stack(images, dim=0)
         return images, boxes, labels
-    
+
     def yolo_collate_fn(self, batch):
         # self.batch_count += 1
 
@@ -569,7 +682,7 @@ class WITUAVDataset(torch.utils.data.Dataset):
         bb_targets = torch.cat(bb_targets, 0)
 
         return imgs, bb_targets
-    
+
     def resize(self, image, boxes, dims=[300, 300], return_percent_coords=True):
         """
         Resize image. For the SSD300, resize to (300, 300).
@@ -584,18 +697,23 @@ class WITUAVDataset(torch.utils.data.Dataset):
             new_image = FT.resize(image, dims)
 
             # Resize bounding boxes
-            old_dims = torch.FloatTensor([image.width, image.height, image.width, image.height]).unsqueeze(0)
+            old_dims = torch.FloatTensor(
+                [image.width, image.height, image.width, image.height]
+            ).unsqueeze(0)
             new_boxes = boxes / old_dims  # percent coordinates
 
             if not return_percent_coords:
-                new_dims = torch.FloatTensor([dims[1], dims[0], dims[1], dims[0]]).unsqueeze(0)
+                new_dims = torch.FloatTensor(
+                    [dims[1], dims[0], dims[1], dims[0]]
+                ).unsqueeze(0)
                 new_boxes = new_boxes * new_dims
 
             return new_image, new_boxes
         except:
-            print('unexpected error')
+            print("unexpected error")
             return new_image, boxes
-        
+
+
 class CombinedDataset(torch.utils.data.ConcatDataset):
     def __init__(self, datasets):
         super().__init__(datasets)

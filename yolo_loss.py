@@ -23,8 +23,9 @@ def bbox_iou(box1, box2, x1y1x2y2=True, GIoU=False, DIoU=False, CIoU=False, eps=
         b2_y1, b2_y2 = box2[1] - box2[3] / 2, box2[1] + box2[3] / 2
 
     # Intersection area
-    inter = (torch.min(b1_x2, b2_x2) - torch.max(b1_x1, b2_x1)).clamp(0) * \
-            (torch.min(b1_y2, b2_y2) - torch.max(b1_y1, b2_y1)).clamp(0)
+    inter = (torch.min(b1_x2, b2_x2) - torch.max(b1_x1, b2_x1)).clamp(0) * (
+        torch.min(b1_y2, b2_y2) - torch.max(b1_y1, b2_y1)
+    ).clamp(0)
 
     # Union Area
     w1, h1 = b1_x2 - b1_x1, b1_y2 - b1_y1 + eps
@@ -37,14 +38,19 @@ def bbox_iou(box1, box2, x1y1x2y2=True, GIoU=False, DIoU=False, CIoU=False, eps=
         cw = torch.max(b1_x2, b2_x2) - torch.min(b1_x1, b2_x1)
         ch = torch.max(b1_y2, b2_y2) - torch.min(b1_y1, b2_y1)  # convex height
         if CIoU or DIoU:  # Distance or Complete IoU https://arxiv.org/abs/1911.08287v1
-            c2 = cw ** 2 + ch ** 2 + eps  # convex diagonal squared
-            rho2 = ((b2_x1 + b2_x2 - b1_x1 - b1_x2) ** 2 +
-                    (b2_y1 + b2_y2 - b1_y1 - b1_y2) ** 2) / 4  # center distance squared
+            c2 = cw**2 + ch**2 + eps  # convex diagonal squared
+            rho2 = (
+                (b2_x1 + b2_x2 - b1_x1 - b1_x2) ** 2
+                + (b2_y1 + b2_y2 - b1_y1 - b1_y2) ** 2
+            ) / 4  # center distance squared
             if DIoU:
                 return iou - rho2 / c2  # DIoU
-            elif CIoU:  # https://github.com/Zzh-tju/DIoU-SSD-pytorch/blob/master/utils/box/box_utils.py#L47
-                v = (4 / math.pi ** 2) * \
-                    torch.pow(torch.atan(w2 / h2) - torch.atan(w1 / h1), 2)
+            elif (
+                CIoU
+            ):  # https://github.com/Zzh-tju/DIoU-SSD-pytorch/blob/master/utils/box/box_utils.py#L47
+                v = (4 / math.pi**2) * torch.pow(
+                    torch.atan(w2 / h2) - torch.atan(w1 / h1), 2
+                )
                 with torch.no_grad():
                     alpha = v / ((1 + eps) - iou + v)
                 return iou - (rho2 / c2 + v * alpha)  # CIoU
@@ -60,16 +66,18 @@ def compute_loss(predictions, targets, model):
     device = targets.device
 
     # Add placeholder varables for the different losses
-    lcls, lbox, lobj = torch.zeros(1, device=device), torch.zeros(1, device=device), torch.zeros(1, device=device)
+    lcls, lbox, lobj = (
+        torch.zeros(1, device=device),
+        torch.zeros(1, device=device),
+        torch.zeros(1, device=device),
+    )
 
     # Build yolo targets
     tcls, tbox, indices, anchors = build_targets(predictions, targets, model)  # targets
 
     # Define different loss functions classification
-    BCEcls = nn.BCEWithLogitsLoss(
-        pos_weight=torch.tensor([1.0], device=device))
-    BCEobj = nn.BCEWithLogitsLoss(
-        pos_weight=torch.tensor([1.0], device=device))
+    BCEcls = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([1.0], device=device))
+    BCEobj = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([1.0], device=device))
 
     # Calculate losses for each yolo layer
     for layer_index, layer_predictions in enumerate(predictions):
@@ -100,7 +108,9 @@ def compute_loss(predictions, targets, model):
 
             # Classification of the objectness
             # Fill our empty object target tensor with the IoU we just calculated for each target at the targets position
-            tobj[b, anchor, grid_j, grid_i] = iou.detach().clamp(0).type(tobj.dtype)  # Use cells with iou > 0 as object targets
+            tobj[b, anchor, grid_j, grid_i] = (
+                iou.detach().clamp(0).type(tobj.dtype)
+            )  # Use cells with iou > 0 as object targets
 
             # Classification of the class
             # Check if we need to do a classification (number of classes > 1)
@@ -113,7 +123,7 @@ def compute_loss(predictions, targets, model):
 
         # Classification of the objectness the sequel
         # Calculate the BCE loss between the on the fly generated target and the network prediction
-        lobj += BCEobj(layer_predictions[..., 4], tobj) # obj loss
+        lobj += BCEobj(layer_predictions[..., 4], tobj)  # obj loss
 
     lbox *= 0.05
     lobj *= 1.0
@@ -148,7 +158,7 @@ def build_targets(p, targets, model):
             # Calculate ration between anchor and target box for both width and height
             r = t[:, :, 4:6] / anchors[:, None]
             # Select the ratios that have the highest divergence in any axis and check if the ratio is less than 4
-            j = torch.max(r, 1. / r).max(2)[0] < 4  # compare #TODO
+            j = torch.max(r, 1.0 / r).max(2)[0] < 4  # compare #TODO
             # Only use targets that have the correct ratios for their anchors
             # That means we only keep ones that have a matching anchor and we loose the anchor dimension
             # The anchor id is still saved in the 7th value of each target
@@ -171,7 +181,9 @@ def build_targets(p, targets, model):
         a = t[:, 6].long()
         # Add target tensors for this yolo layer to the output lists
         # Add to index list and limit index range to prevent out of bounds
-        indices.append((b, a, gj.clamp_(0, gain[3].long() - 1), gi.clamp_(0, gain[2].long() - 1)))
+        indices.append(
+            (b, a, gj.clamp_(0, gain[3].long() - 1), gi.clamp_(0, gain[2].long() - 1))
+        )
         # Add to target box list and convert box coordinates from global grid coordinates to local offsets in the grid cell
         tbox.append(torch.cat((gxy - gij, gwh), 1))  # box
         # Add correct anchor for each target to the list

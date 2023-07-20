@@ -11,6 +11,7 @@ Pegasus_Root
   - images
 
     - train
+
       - 1_60_30_0_00000.jpg
 
     - val
@@ -25,9 +26,7 @@ Pegasus_Root
 
     - test.json
 
-
-
-oriented bbox: [xc, yc, w, h, angle]
+oriented bbox: \[xc, yc, w, h, angle\]
 
 ## VOC format
 
@@ -53,16 +52,14 @@ voc_root
 
     - test.txt
 
-
-
-horizontal bbox: [xmin, ymin, xmax, ymax]
+horizontal bbox: \[xmin, ymin, xmax, ymax\]
 
 ## COCO format
 
 COCO_ROOT
 
 - annotations
-  -  instances_train.json
+  - instances_train.json
   - instances_val.json
   - instances_test.json
 - train
@@ -72,7 +69,4 @@ COCO_ROOT
 - test
   - 1_60_30_0_00000.jpg
 
-
-
-horizontal bbox: [xmin, ymin, w, h]
-
+horizontal bbox: \[xmin, ymin, w, h\]
