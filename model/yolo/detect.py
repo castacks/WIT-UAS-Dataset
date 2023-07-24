@@ -4,6 +4,13 @@ from __future__ import division
 import argparse
 import datetime
 import os
+import sys
+
+root_folder = os.path.abspath(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)
+sys.path.append(root_folder)
+
 import random
 
 import matplotlib.patches as patches
@@ -17,14 +24,14 @@ from PIL import Image
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 
-from dataset import HITUAVDatasetTest
-from dataset import HITUAVDatasetTrain
-from dataset import HITUAVDatasetVal
-from yolo_model import load_model
-from yolo_utils import load_classes
-from yolo_utils import non_max_suppression
-from yolo_utils import print_environment_info
-from yolo_utils import rescale_boxes
+from tools.dataset import HITUAVDatasetTest
+from tools.dataset import HITUAVDatasetTrain
+from tools.dataset import HITUAVDatasetVal
+from model import load_model
+from utils import load_classes
+from utils import non_max_suppression
+from utils import print_environment_info
+from utils import rescale_boxes
 
 
 def detect_directory(

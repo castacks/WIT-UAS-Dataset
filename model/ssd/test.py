@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+import os
+import sys
+
+root_folder = os.path.abspath(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)
+sys.path.append(root_folder)
+
 import time
 from pprint import PrettyPrinter
 
@@ -7,12 +15,12 @@ import torch.optim
 import torch.utils.data
 from tqdm import tqdm
 
-from dataset import HITUAVDatasetTest
-from dataset import HITUAVDatasetTrain
-from dataset import HITUAVDatasetVal
-from ssd_model import MultiBoxLoss
-from ssd_model import SSD300
-from ssd_utils import *
+from tools.dataset import HITUAVDatasetTest
+from tools.dataset import HITUAVDatasetTrain
+from tools.dataset import HITUAVDatasetVal
+from model import MultiBoxLoss
+from model import SSD300
+from utils import *
 
 pp = PrettyPrinter()
 

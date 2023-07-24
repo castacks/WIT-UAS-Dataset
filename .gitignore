@@ -210,10 +210,9 @@ Ask AI to edit or generate...
 
 10701_env/
 
-**/WIT-UAV-Dataset
+**/logs
 **/wandb
 **/yolo_logs
 **/output
 **/checkpoints
 **/ssd_logs
-WIT-UAV-Dataset

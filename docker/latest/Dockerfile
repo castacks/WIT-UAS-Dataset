@@ -93,7 +93,7 @@ COPY --from=home-folder-config ./.screenrc $HOME_FOLDER/
 COPY --from=home-folder-config ./.tmux.conf $HOME_FOLDER/
 
 # albumentations and wandb
-RUN pip3 install albumentations wandb
+RUN pip3 install albumentations terminaltables torchsummary wandb
 
 # Install open3d and pre-commit for convenience
 RUN pip3 install open3d pre-commit

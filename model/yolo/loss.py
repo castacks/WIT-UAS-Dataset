@@ -1,9 +1,16 @@
+import os
+import sys
+
+root_folder = os.path.abspath(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)
+sys.path.append(root_folder)
 import math
 
 import torch
 import torch.nn as nn
 
-from yolo_utils import to_cpu
+from utils import to_cpu
 
 # This new loss function is based on https://github.com/ultralytics/yolov3/blob/master/utils/loss.py
 

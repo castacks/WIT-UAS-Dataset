@@ -2,6 +2,13 @@
 import argparse
 import copy
 import os
+import sys
+
+root_folder = os.path.abspath(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)
+sys.path.append(root_folder)
+
 import random
 import shutil
 import time
@@ -22,15 +29,15 @@ from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
-import wandb_logger
-from dataset import CombinedDataset
-from dataset import HITUAVDatasetTrain
-from dataset import HITUAVDatasetVal
-from dataset import WITUAVDataset
-from logger import Logger
-from ssd_model import MultiBoxLoss
-from ssd_model import SSD300
-from ssd_utils import *
+from tools import wandb_logger
+from tools.dataset import CombinedDataset
+from tools.dataset import HITUAVDatasetTrain
+from tools.dataset import HITUAVDatasetVal
+from tools.dataset import WITUAVDataset
+from tools.logger import Logger
+from model import MultiBoxLoss
+from model import SSD300
+from utils import *
 
 cudnn.benchmark = True
 

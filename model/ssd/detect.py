@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 import os
+import sys
+
+root_folder = os.path.abspath(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)
+sys.path.append(root_folder)
 
 import matplotlib.pyplot as plt
 import torch
@@ -9,8 +15,8 @@ from PIL import ImageFont
 from torchvision import transforms
 from tqdm import tqdm
 
-from ssd_model import SSD300
-from ssd_utils import *
+from model import SSD300
+from utils import *
 
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device = torch.device("cpu")

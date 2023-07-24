@@ -2,6 +2,13 @@
 from __future__ import division
 
 import argparse
+import os
+import sys
+
+root_folder = os.path.abspath(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)
+sys.path.append(root_folder)
 
 import numpy as np
 import torch
@@ -9,16 +16,16 @@ import tqdm
 from terminaltables import AsciiTable
 from torch.autograd import Variable
 
-import wandb_logger
-from dataset import HITUAVDatasetTest
-from yolo_model import load_model
-from yolo_parse_config import parse_data_config
-from yolo_utils import ap_per_class
-from yolo_utils import get_batch_statistics
-from yolo_utils import load_classes
-from yolo_utils import non_max_suppression
-from yolo_utils import print_environment_info
-from yolo_utils import xywh2xyxy
+from tools import wandb_logger
+from tools.dataset import HITUAVDatasetTest
+from model import load_model
+from parse_config import parse_data_config
+from utils import ap_per_class
+from utils import get_batch_statistics
+from utils import load_classes
+from utils import non_max_suppression
+from utils import print_environment_info
+from utils import xywh2xyxy
 
 
 def evaluate_model_file(

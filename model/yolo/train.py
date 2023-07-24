@@ -3,6 +3,12 @@ from __future__ import division
 
 import argparse
 import os
+import sys
+
+root_folder = os.path.abspath(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)
+sys.path.append(root_folder)
 
 import albumentations as A
 import torch
@@ -13,21 +19,21 @@ from terminaltables import AsciiTable
 from torch.utils.data import DataLoader
 from torchsummary import summary
 
-import wandb_logger
-from dataset import CombinedDataset
-from dataset import HITUAVDatasetTrain
-from dataset import HITUAVDatasetVal
-from dataset import WITUAVDataset
-from logger import Logger
-from yolo_loss import compute_loss
-from yolo_model import load_model
-from yolo_parse_config import parse_data_config
-from yolo_test import _evaluate
-from yolo_utils import load_classes
-from yolo_utils import print_environment_info
-from yolo_utils import provide_determinism
-from yolo_utils import to_cpu
-from yolo_utils import worker_seed_set
+from tools import wandb_logger
+from tools.dataset import CombinedDataset
+from tools.dataset import HITUAVDatasetTrain
+from tools.dataset import HITUAVDatasetVal
+from tools.dataset import WITUAVDataset
+from tools.logger import Logger
+from loss import compute_loss
+from model import load_model
+from parse_config import parse_data_config
+from test import _evaluate
+from utils import load_classes
+from utils import print_environment_info
+from utils import provide_determinism
+from utils import to_cpu
+from utils import worker_seed_set
 
 
 def run():
@@ -40,7 +46,7 @@ def run():
         "-m",
         "--model",
         type=str,
-        default="yolov3-custom.cfg",
+        default="./model/yolo/yolov3-custom.cfg",
         help="Path to model definition file (.cfg)",
     )
     parser.add_argument(

@@ -1,3 +1,11 @@
+import os
+import sys
+
+root_folder = os.path.abspath(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)
+sys.path.append(root_folder)
+
 from itertools import product as product
 from math import sqrt
 
@@ -6,7 +14,7 @@ import torch.nn.functional as F
 import torchvision
 from torch import nn
 
-from ssd_utils import *
+from utils import *
 
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device = torch.device("cpu")

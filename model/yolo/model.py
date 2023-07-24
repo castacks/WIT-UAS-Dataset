@@ -1,6 +1,12 @@
 from __future__ import division
 
 import os
+import sys
+
+root_folder = os.path.abspath(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)
+sys.path.append(root_folder)
 from itertools import chain
 
 import numpy as np
@@ -8,8 +14,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from yolo_parse_config import parse_model_config
-from yolo_utils import weights_init_normal
+from parse_config import parse_model_config
+from utils import weights_init_normal
 
 
 def create_modules(module_defs):
