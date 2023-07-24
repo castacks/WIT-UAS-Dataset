@@ -1,10 +1,12 @@
-import torch
-from torch import nn
-from ssd_utils import *
-import torch.nn.functional as F
-from math import sqrt
 from itertools import product as product
+from math import sqrt
+
+import torch
+import torch.nn.functional as F
 import torchvision
+from torch import nn
+
+from ssd_utils import *
 
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device = torch.device("cpu")

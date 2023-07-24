@@ -1,6 +1,8 @@
-import wandb
-import torch
 from datetime import datetime
+
+import torch
+
+import wandb
 
 PROJECT_NAME = "HIT-Object-Detection"
 WANDB_ENTITY = "cmu-ri-wildfire"

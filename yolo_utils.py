@@ -1,14 +1,15 @@
 from __future__ import division
 
-import time
 import platform
-import tqdm
+import random
+import subprocess
+import time
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torchvision
-import numpy as np
-import subprocess
-import random
+import tqdm
 
 
 def provide_determinism(seed=42):

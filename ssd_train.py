@@ -1,37 +1,36 @@
+#!/usr/bin/env python3
 import argparse
-import time
-import torch.backends.cudnn as cudnn
-import torch.optim
-import torch.utils.data
-from ssd_model import SSD300, MultiBoxLoss
-from dataset import HITUAVDatasetTrain, HITUAVDatasetVal, WITUAVDataset, CombinedDataset
-from ssd_utils import *
-
-from tqdm import tqdm
-from pprint import PrettyPrinter
-
-from logger import Logger
-import wandb_logger
-
-
-from collections import defaultdict
 import copy
-import random
 import os
+import random
 import shutil
+import time
+from collections import defaultdict
+from pprint import PrettyPrinter
 from urllib.request import urlretrieve
 
 import albumentations as A
-from albumentations.pytorch import ToTensorV2
 import cv2
 import matplotlib.pyplot as plt
-from tqdm import tqdm
-import torch
 import torch.backends.cudnn as cudnn
 import torch.nn as nn
 import torch.optim
-from torch.utils.data import Dataset, DataLoader
+import torch.utils.data
 import torchvision.models as models
+from albumentations.pytorch import ToTensorV2
+from torch.utils.data import DataLoader
+from torch.utils.data import Dataset
+from tqdm import tqdm
+
+import wandb_logger
+from dataset import CombinedDataset
+from dataset import HITUAVDatasetTrain
+from dataset import HITUAVDatasetVal
+from dataset import WITUAVDataset
+from logger import Logger
+from ssd_model import MultiBoxLoss
+from ssd_model import SSD300
+from ssd_utils import *
 
 cudnn.benchmark = True
 

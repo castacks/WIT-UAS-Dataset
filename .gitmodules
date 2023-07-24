@@ -1,0 +1,3 @@
+[submodule "HIT-UAV-Infrared-Thermal-Dataset"]
+	path = HIT-UAV-Infrared-Thermal-Dataset
+	url = https://github.com/suojiashun/HIT-UAV-Infrared-Thermal-Dataset.git

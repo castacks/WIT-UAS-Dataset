@@ -18,6 +18,7 @@ repos:
       hooks:
           - id: yamlfmt
             exclude: (?i)(.*docker-compose.*)$ # by-pass docker-compose since the %YAML 1.2 will break it.
+
     - repo: https://github.com/pre-commit/mirrors-prettier # mirrors-prettier is a prettier wrapper.
       rev: v3.0.0
       hooks:
@@ -49,27 +50,32 @@ repos:
                 - -e
                 - SC1071,SC1091
 
+    - repo: https://github.com/asottile/reorder-python-imports
+      rev: v3.10.0
+      hooks:
+          - id: reorder-python-imports
+
     - repo: https://github.com/psf/black # The uncompromising Python code formatter.
       rev: 23.3.0
       hooks:
           - id: black
           - id: black-jupyter
 
-    - repo: https://github.com/pre-commit/mirrors-clang-format # mirrors-clang-format is a clang-format wrapper, it can format json
-      rev: v16.0.6
-      hooks:
-          - id: clang-format
-            files: (?i)\.(h|c|hpp|cpp|hxx|cxx|cc)$
+    # - repo: https://github.com/pre-commit/mirrors-clang-format # mirrors-clang-format is a clang-format wrapper, it can format json
+    #   rev: v16.0.6
+    #   hooks:
+    #       - id: clang-format
+    #         files: (?i)\.(h|c|hpp|cpp|hxx|cxx|cc)$
 
     # - repo: https://github.com/pocc/pre-commit-hooks # pre-commit-hooks is a collection of additional pre-commit hooks. Using clang-tidy only for now.
     #   rev: v1.3.5
     #   hooks:
     #       - id: clang-tidy
 
-    - repo: https://github.com/cheshirekow/cmake-format-precommit # cmake-format-precommit is a cmake-format wrapper.
-      rev: v0.6.13
-      hooks:
-          - id: cmake-format
+    # - repo: https://github.com/cheshirekow/cmake-format-precommit # cmake-format-precommit is a cmake-format wrapper.
+    #   rev: v0.6.13
+    #   hooks:
+    #       - id: cmake-format
 
     - repo: https://github.com/executablebooks/mdformat # mdformat is a markdown formatter.
       rev: 0.7.16

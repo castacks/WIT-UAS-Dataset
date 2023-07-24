@@ -1,11 +1,16 @@
-from torchvision import transforms
-from ssd_utils import *
-from PIL import Image, ImageDraw, ImageFont
+#!/usr/bin/env python3
 import os
-import torch
-from ssd_model import SSD300
+
 import matplotlib.pyplot as plt
+import torch
+from PIL import Image
+from PIL import ImageDraw
+from PIL import ImageFont
+from torchvision import transforms
 from tqdm import tqdm
+
+from ssd_model import SSD300
+from ssd_utils import *
 
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device = torch.device("cpu")

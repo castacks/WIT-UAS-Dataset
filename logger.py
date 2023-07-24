@@ -1,5 +1,6 @@
-import os
 import datetime
+import os
+
 from torch.utils.tensorboard import SummaryWriter
 
 

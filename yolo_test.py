@@ -1,27 +1,24 @@
+#!/usr/bin/env python3
 from __future__ import division
 
 import argparse
-import tqdm
+
 import numpy as np
-import wandb_logger
-
-from terminaltables import AsciiTable
-
 import torch
+import tqdm
+from terminaltables import AsciiTable
 from torch.autograd import Variable
 
-from yolo_model import load_model
-from yolo_utils import (
-    load_classes,
-    ap_per_class,
-    get_batch_statistics,
-    non_max_suppression,
-    xywh2xyxy,
-    print_environment_info,
-)
-from yolo_parse_config import parse_data_config
-
+import wandb_logger
 from dataset import HITUAVDatasetTest
+from yolo_model import load_model
+from yolo_parse_config import parse_data_config
+from yolo_utils import ap_per_class
+from yolo_utils import get_batch_statistics
+from yolo_utils import load_classes
+from yolo_utils import non_max_suppression
+from yolo_utils import print_environment_info
+from yolo_utils import xywh2xyxy
 
 
 def evaluate_model_file(

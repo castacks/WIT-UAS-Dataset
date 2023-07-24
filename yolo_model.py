@@ -1,11 +1,12 @@
 from __future__ import division
-from itertools import chain
-import os
 
+import os
+from itertools import chain
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
 
 from yolo_parse_config import parse_model_config
 from yolo_utils import weights_init_normal

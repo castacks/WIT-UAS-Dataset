@@ -1,5 +1,6 @@
-import torch
 import os
+
+import torch
 
 hit_labels = ("person", "car", "bicycle", "othervehicle", "dontcare", "noobject")
 label_map = {k: v + 1 for v, k in enumerate(hit_labels)}

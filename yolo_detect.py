@@ -1,32 +1,30 @@
+#!/usr/bin/env python3
 from __future__ import division
 
-import os
 import argparse
-import tqdm
+import datetime
+import os
 import random
+
+import matplotlib.patches as patches
+import matplotlib.pyplot as plt
 import numpy as np
-
-from PIL import Image
-
 import torch
 import torchvision.transforms as transforms
-from torch.utils.data import DataLoader
-from torch.autograd import Variable
-
-from yolo_model import load_model
-from yolo_utils import (
-    load_classes,
-    rescale_boxes,
-    non_max_suppression,
-    print_environment_info,
-)
-
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
+import tqdm
 from matplotlib.ticker import NullLocator
+from PIL import Image
+from torch.autograd import Variable
+from torch.utils.data import DataLoader
 
-from dataset import HITUAVDatasetTest, HITUAVDatasetTrain, HITUAVDatasetVal
-import datetime
+from dataset import HITUAVDatasetTest
+from dataset import HITUAVDatasetTrain
+from dataset import HITUAVDatasetVal
+from yolo_model import load_model
+from yolo_utils import load_classes
+from yolo_utils import non_max_suppression
+from yolo_utils import print_environment_info
+from yolo_utils import rescale_boxes
 
 
 def detect_directory(

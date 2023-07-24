@@ -1,0 +1,8 @@
+---
+user: tartan-slam
+group: tartan-slam
+paths:
+    - /home/tartan-slam/.oh-my-zsh
+    - /home/tartan-slam/.zshrc
+    - /home/tartan-slam/.bashrc
+    - /tmp

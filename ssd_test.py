@@ -1,13 +1,18 @@
+#!/usr/bin/env python3
 import time
+from pprint import PrettyPrinter
+
 import torch.backends.cudnn as cudnn
 import torch.optim
 import torch.utils.data
-from ssd_model import SSD300, MultiBoxLoss
-from dataset import HITUAVDatasetTest, HITUAVDatasetTrain, HITUAVDatasetVal
-from ssd_utils import *
-
 from tqdm import tqdm
-from pprint import PrettyPrinter
+
+from dataset import HITUAVDatasetTest
+from dataset import HITUAVDatasetTrain
+from dataset import HITUAVDatasetVal
+from ssd_model import MultiBoxLoss
+from ssd_model import SSD300
+from ssd_utils import *
 
 pp = PrettyPrinter()
 

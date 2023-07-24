@@ -1,35 +1,33 @@
+#!/usr/bin/env python3
 from __future__ import division
 
-import albumentations as A
-from albumentations.pytorch import ToTensorV2
-import os
 import argparse
-import tqdm
+import os
 
+import albumentations as A
 import torch
-from torch.utils.data import DataLoader
 import torch.optim as optim
-
-from yolo_model import load_model
-from logger import Logger
-from yolo_utils import (
-    to_cpu,
-    load_classes,
-    print_environment_info,
-    provide_determinism,
-    worker_seed_set,
-)
-from yolo_parse_config import parse_data_config
-from yolo_loss import compute_loss
-from yolo_test import _evaluate
-
+import tqdm
+from albumentations.pytorch import ToTensorV2
 from terminaltables import AsciiTable
-
+from torch.utils.data import DataLoader
 from torchsummary import summary
 
-from dataset import HITUAVDatasetTrain, HITUAVDatasetVal, WITUAVDataset, CombinedDataset
-
 import wandb_logger
+from dataset import CombinedDataset
+from dataset import HITUAVDatasetTrain
+from dataset import HITUAVDatasetVal
+from dataset import WITUAVDataset
+from logger import Logger
+from yolo_loss import compute_loss
+from yolo_model import load_model
+from yolo_parse_config import parse_data_config
+from yolo_test import _evaluate
+from yolo_utils import load_classes
+from yolo_utils import print_environment_info
+from yolo_utils import provide_determinism
+from yolo_utils import to_cpu
+from yolo_utils import worker_seed_set
 
 
 def run():
