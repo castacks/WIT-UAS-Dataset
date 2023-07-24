@@ -228,7 +228,7 @@ def run():
         "-m",
         "--model",
         type=str,
-        default="yolov3-custom.cfg",
+        default="./model/yolo/yolov3-custom.cfg",
         help="Path to model definition file (.cfg)",
     )
     parser.add_argument(
@@ -249,7 +249,7 @@ def run():
         "-c",
         "--classes",
         type=str,
-        default="hit.names",
+        default="./dataset.classes",
         help="Path to classes label file (.names)",
     )
     parser.add_argument(

@@ -222,7 +222,7 @@ def run():
         "-m",
         "--model",
         type=str,
-        default="yolov3-custom.cfg",
+        default="./model/yolo/yolov3-custom.cfg",
         help="Path to model definition file (.cfg)",
     )
     parser.add_argument(

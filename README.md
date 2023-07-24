@@ -10,7 +10,13 @@
 
 ## Test Object Detection
 
-### Setup Environment
+Clone the repo locally:
+
+```Shell
+git clone --recursive https://github.com/castacks/WIT-UAS-Dataset.git
+```
+
+### Environment Setup
 
 There are 2 options:
 
@@ -65,3 +71,23 @@ Send an email to [Mukai (Tom Notch) Yu](mailto:mukaiy@andrew.cmu.edu) if you are
 To train the models: `./model/yolo/train.py` or `./model/ssd/train.py`
 
 You may need to adjust the batch size according to your GPU memory by using the `--batch-size` argument
+
+## How To Contribute
+
+1. Clone the repo locally
+
+   ```Shell
+   git clone --recursive https://github.com/castacks/WIT-UAS-Dataset.git
+   ```
+
+1. Create a new branch for your work:
+
+   ```Shell
+   git checkout -b <branch-name>
+   ```
+
+1. Setup required development environment
+
+   ```Shell
+   ./scripts/setup.sh
+   ```
