@@ -7,26 +7,17 @@ import sys
 root_folder = os.path.abspath(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 )
-sys.path.append(root_folder)
+sys.path.append(root_folder)  # to enable import from parent directory
 
-import random
-import shutil
 import time
-from collections import defaultdict
 from pprint import PrettyPrinter
-from urllib.request import urlretrieve
-
 import albumentations as A
-import cv2
-import matplotlib.pyplot as plt
 import torch.backends.cudnn as cudnn
 import torch.nn as nn
 import torch.optim
 import torch.utils.data
-import torchvision.models as models
-from albumentations.pytorch import ToTensorV2
-from torch.utils.data import DataLoader
-from torch.utils.data import Dataset
+
+# from albumentations.pytorch import ToTensorV2
 from tqdm import tqdm
 
 from tools import wandb_logger

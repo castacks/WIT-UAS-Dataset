@@ -8,15 +8,15 @@ import sys
 root_folder = os.path.abspath(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 )
-sys.path.append(root_folder)
+sys.path.append(root_folder)  # to enable import from parent directory
 
 import albumentations as A
 import torch
 import torch.optim as optim
 import tqdm
-from albumentations.pytorch import ToTensorV2
+
+# from albumentations.pytorch import ToTensorV2
 from terminaltables import AsciiTable
-from torch.utils.data import DataLoader
 from torchsummary import summary
 
 from tools import wandb_logger
@@ -33,7 +33,6 @@ from utils import load_classes
 from utils import print_environment_info
 from utils import provide_determinism
 from utils import to_cpu
-from utils import worker_seed_set
 
 
 def run():

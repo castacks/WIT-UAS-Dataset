@@ -4,7 +4,7 @@ import sys
 root_folder = os.path.abspath(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 )
-sys.path.append(root_folder)
+sys.path.append(root_folder)  # to enable import from parent directory
 
 from itertools import product as product
 from math import sqrt
@@ -16,8 +16,7 @@ from torch import nn
 
 from utils import *
 
-# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device = torch.device("cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class VGGBase(nn.Module):
@@ -685,7 +684,7 @@ class MultiBoxLoss(nn.Module):
 
     def __init__(self, priors_cxcy, threshold=0.5, neg_pos_ratio=3, alpha=1.0):
         super(MultiBoxLoss, self).__init__()
-        self.priors_cxcy = priors_cxcy
+        self.priors_cxcy = priors_cxcy.to(device)
         self.priors_xy = cxcy_to_xy(priors_cxcy)
         self.threshold = threshold
         self.neg_pos_ratio = neg_pos_ratio

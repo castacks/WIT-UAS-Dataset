@@ -9,7 +9,7 @@ import sys
 root_folder = os.path.abspath(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 )
-sys.path.append(root_folder)
+sys.path.append(root_folder)  # to enable import from parent directory
 
 import random
 
@@ -20,9 +20,7 @@ import torch
 import torchvision.transforms as transforms
 import tqdm
 from matplotlib.ticker import NullLocator
-from PIL import Image
 from torch.autograd import Variable
-from torch.utils.data import DataLoader
 
 from tools.dataset import HITUAVDatasetTest
 from tools.dataset import HITUAVDatasetTrain
