@@ -207,12 +207,24 @@ pyrightconfig.json
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,python,jupyternotebooks
 Ask AI to edit or generate...
 
+# Dataset
+**/WIT-UAV-Dataset
 
-10701_env/
+# Weights
+**/*.pt
+**/*.pth
+**/*.weights
+**/checkpoints
 
+# Logs
 **/logs
 **/wandb
 **/yolo_logs
-**/output
-**/checkpoints
 **/ssd_logs
+
+# Visuals
+**/sliced_prediction
+
+10701_env/
+
+**/output

@@ -1,24 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 # Copyright 2016 Massachusetts Institute of Technology
 # Credit, extended from: W. Nicholas Greene https://gist.github.com/wngreene/835cda68ddd9c5416defce876a4d7dd9
-
 """Extract images from a rosbag.
 """
-
-import os
 import argparse
+import os
 
 import cv2
-
 import rosbag
-from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
+from sensor_msgs.msg import Image
+
 
 def main():
-    """Extract a folder of images from a rosbag.
-    """
+    """Extract a folder of images from a rosbag."""
     parser = argparse.ArgumentParser(description="Extract images from a ROS bag.")
     parser.add_argument("bag_file", help="Input ROS bag.")
     parser.add_argument("output_dir", help="Output directory.")
@@ -26,7 +22,9 @@ def main():
 
     args = parser.parse_args()
 
-    print(f"Extract images from {args.bag_file} on topic {args.image_topic} into {args.output_dir}")
+    print(
+        f"Extract images from {args.bag_file} on topic {args.image_topic} into {args.output_dir}"
+    )
     os.makedirs(args.output_dir, exist_ok=True)
 
     bag = rosbag.Bag(args.bag_file, "r")
@@ -49,6 +47,6 @@ def main():
 
     return
 
-if __name__ == '__main__':
-    main()
 
+if __name__ == "__main__":
+    main()
