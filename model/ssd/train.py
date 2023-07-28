@@ -168,8 +168,17 @@ def main():
             ]
         )
 
+    # use args.train_fraction to generate evenly spaced indices that correspond to the fraction of the dataset
+    train_indices = torch.linspace(
+        0,
+        len(train_dataset) - 1,
+        int(len(train_dataset) * args.train_fraction),
+        dtype=torch.long,
+    )
+    subset = torch.utils.data.Subset(train_dataset, train_indices)
+
     train_loader = torch.utils.data.DataLoader(
-        train_dataset,
+        subset,
         batch_size=args.batch_size,
         shuffle=True,
         collate_fn=train_dataset.collate_fn,
@@ -443,6 +452,13 @@ if __name__ == "__main__":
         type=str,
         default="all",
         help="dataset to use, can be all/hit/wit",
+    )
+    parser.add_argument(
+        "-f",
+        "--train-fraction",
+        type=float,
+        default=1.0,
+        help="fraction of training data to use, useful for debugging",
     )
     parser.add_argument(
         "--wit-sensor",
