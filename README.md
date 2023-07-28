@@ -43,13 +43,13 @@ There are 2 options:
   1. Create environment for **WIT**:
 
      ```Shell
-     conda env create -f environment.yml
+     mamba env create -f environment.yaml
      ```
 
   1. Activate **WIT**:
 
      ```Shell
-     conda activate WIT
+     mamba activate wit-uas
      ```
 
 ### Visualization
