@@ -12,7 +12,7 @@ import torch
 
 import wandb
 
-PROJECT_NAME = "HIT-Object-Detection"
+PROJECT_NAME = "2023-IROS-WIT-UAV"
 WANDB_ENTITY = "cmu-ri-wildfire"
 BATCH_INTERVAL = 2
 
