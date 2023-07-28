@@ -12,6 +12,28 @@ import torchvision
 import tqdm
 
 
+def print_dict(d: dict, indent: int = 0) -> None:
+    """print a dictionary with indentation, uses recursion to print nested dictionaries
+
+    Args:
+        d (dict): dictionary to be printed
+        indent (int, optional): indentation level. Defaults to 0.
+
+    Returns:
+        None
+    """
+    for key, value in d.items():
+        if isinstance(value, dict):
+            print("  " * indent + str(key) + ": ")
+            print_dict(value, indent + 1)
+        elif isinstance(value, np.ndarray):
+            print(
+                "  " * indent + str(key) + ":\n" + str(value)
+            )  # new line before printing matrix for better readability
+        else:
+            print("  " * indent + str(key) + ": " + str(value))
+
+
 def provide_determinism(seed=42):
     random.seed(seed)
     np.random.seed(seed)

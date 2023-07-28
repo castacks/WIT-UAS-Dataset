@@ -446,9 +446,19 @@ class HITUAVDatasetTest(torch.utils.data.Dataset):
             labels = torch.LongTensor(labels_list)
             image, boxes = self.resize(image, boxes)
             image = FT.to_tensor(image)
-            mean = [0.485, 0.456, 0.406]
-            std = [0.229, 0.224, 0.225]
-            image = FT.normalize(image, mean=mean, std=std)
+            mean = [
+                0.485,
+                0.456,
+                0.406,
+            ]  #! NOTE: ??? wtf is this ??? if I hadn't seen this line...
+            std = [
+                0.229,
+                0.224,
+                0.225,
+            ]  #! NOTE: ??? wtf is this ??? if I hadn't seen this line...
+            image = FT.normalize(
+                image, mean=mean, std=std
+            )  #! NOTE: ??? wtf is this ??? if I hadn't seen this line...
             return image, boxes, labels
         else:
             np_targets = []

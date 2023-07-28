@@ -216,15 +216,18 @@ Ask AI to edit or generate...
 **/*.weights
 **/checkpoints
 
-# Logs
-**/logs
-**/wandb
-**/yolo_logs
-**/ssd_logs
-
 # Visuals
 **/sliced_prediction
 
-10701_env/
+# Weights
+**/*.pt
+**/*.pth
+**/*.weights
+**/checkpoints
 
+# Logs
+**/logs
+**/wandb
+**/ssd_logs
+**/yolo_logs
 **/output

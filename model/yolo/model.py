@@ -14,9 +14,16 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from sahi.models.base import DetectionModel
+from sahi.prediction import ObjectPrediction
+from sahi.utils.compatibility import fix_full_shape_list, fix_shift_amount_list
+from typing import Any, Dict, List, Optional
+import torchvision.transforms.functional as FT
 
 from parse_config import parse_model_config
-from utils import weights_init_normal
+from utils import weights_init_normal, non_max_suppression
+
+import cv2
 
 
 def create_modules(module_defs):
@@ -193,11 +200,17 @@ class YOLOLayer(nn.Module):
         return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).float()
 
 
-class Darknet(nn.Module):
+class Darknet(nn.Module, DetectionModel):
     """YOLOv3 object detection model"""
 
     def __init__(self, config_path):
-        super(Darknet, self).__init__()
+        nn.Module.__init__(self)
+        DetectionModel.__init__(
+            self,
+            load_at_init=False,
+            device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
+            category_remapping={},
+        )
         self.module_defs = parse_model_config(config_path)
         self.hyperparams, self.module_list = create_modules(self.module_defs)
         self.yolo_layers = [
@@ -205,6 +218,128 @@ class Darknet(nn.Module):
         ]
         self.seen = 0
         self.header_info = np.array([0, 0, 0, self.seen, 0], dtype=np.int32)
+
+    def set_thresholds(self, conf_thres=0.01, nms_thres=0.4, iou_thres=0.5):
+        self.conf_thres = conf_thres
+        self.nms_thres = nms_thres
+        self.iou_thres = iou_thres
+
+    def set_id2name_mapping(self, category_mapping: Dict[str, str]) -> None:
+        self.category_mapping = category_mapping
+
+    def perform_inference(self, image: np.ndarray) -> None:
+        """NOTE: prediction interface for SAHI, touches self._original_predictions, which will be a list of tensor with shape (N, 6), each row:
+           [x1, y1, x2, y2, prediction_score, category_id]
+
+        Args:
+            image (np.ndarray): 3 channel thermal image without normalization
+        """
+        image_size_multiplicative_ratio = torch.tensor(
+            [
+                image.shape[0] / self.hyperparams["height"],
+                image.shape[1] / self.hyperparams["width"],
+            ]
+        )
+
+        image_resized = cv2.resize(
+            image, (self.hyperparams["height"], self.hyperparams["width"])
+        )  # resize to a fixed model input size
+
+        model_input = np.transpose(image_resized, (2, 0, 1))[
+            np.newaxis, :
+        ]  # transform from shape (H, W, C) to (1, C, H, W)
+
+        model_input = torch.from_numpy(model_input).to(
+            torch.float32
+        )  #! NOTE: normalize input since the model is trained with normalized input
+        mean = model_input[0, 0].mean()
+        std = model_input[0, 0].std()
+        model_input[0] = FT.normalize(model_input[0], mean=[mean], std=[std])
+
+        with torch.no_grad():
+            prediction_result = self.forward(
+                model_input.to(
+                    torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+                )
+            )  # list of prediction each with shape: (N, 11) 11 is 5 + num_classes
+            prediction_result = non_max_suppression(
+                prediction_result, conf_thres=self.conf_thres, iou_thres=self.nms_thres
+            )  # list of prediction each with shape: (N, 6) 6: [min_x, min_y, max_x, max_y, prediction_score, category_id(float)]
+
+            # resize the detected box back to input image size
+            for prediction in prediction_result:
+                prediction[:, :4] *= torch.tile(
+                    image_size_multiplicative_ratio, (prediction.shape[0], 2)
+                )
+
+        self._original_predictions = prediction_result
+
+    def _create_object_prediction_list_from_original_predictions(
+        self,
+        shift_amount_list: Optional[List[List[int]]] = [[0, 0]],
+        full_shape_list: Optional[List[List[int]]] = None,
+    ):
+        original_predictions = self._original_predictions
+
+        # compatilibty for sahi v0.8.15
+        shift_amount_list = fix_shift_amount_list(shift_amount_list)
+        full_shape_list = fix_full_shape_list(full_shape_list)
+
+        # handle all predictions
+        object_prediction_list_per_image = []
+        for image_ind, image_predictions_in_xyxy_format in enumerate(
+            original_predictions
+        ):
+            shift_amount = shift_amount_list[image_ind]
+            full_shape = None if full_shape_list is None else full_shape_list[image_ind]
+            object_prediction_list = []
+
+            # process predictions
+            for prediction in image_predictions_in_xyxy_format.cpu().detach().numpy():
+                x1 = prediction[0]
+                y1 = prediction[1]
+                x2 = prediction[2]
+                y2 = prediction[3]
+                bbox = [x1, y1, x2, y2]
+                score = prediction[4]
+                category_id = int(prediction[5])
+                category_name = self.category_mapping[str(category_id)]
+
+                # fix negative box coords
+                bbox[0] = max(0, bbox[0])
+                bbox[1] = max(0, bbox[1])
+                bbox[2] = max(0, bbox[2])
+                bbox[3] = max(0, bbox[3])
+
+                # fix out of image box coords
+                if full_shape is not None:
+                    bbox[0] = min(full_shape[1], bbox[0])
+                    bbox[1] = min(full_shape[0], bbox[1])
+                    bbox[2] = min(full_shape[1], bbox[2])
+                    bbox[3] = min(full_shape[0], bbox[3])
+
+                # ignore invalid predictions
+                if (
+                    not (bbox[0] < bbox[2])
+                    or not (bbox[1] < bbox[3])
+                    or category_name == "bicycle"
+                ):  #! NOTE: can remove bicycle class here by appending this line: or category_name == "bicycle"
+                    # logger.warning(f"ignoring invalid prediction with bbox: {bbox}")
+                    continue
+
+                object_prediction = ObjectPrediction(
+                    bbox=bbox,
+                    category_id=category_id,
+                    score=score,
+                    bool_mask=None,
+                    category_name=category_name,
+                    shift_amount=shift_amount,
+                    full_shape=full_shape,
+                )
+                object_prediction_list.append(object_prediction)
+            object_prediction_list_per_image.append(object_prediction_list)
+
+        self._object_prediction_list_per_image = object_prediction_list_per_image
 
     def forward(self, x):
         img_size = x.size(2)
@@ -353,7 +488,7 @@ def load_model(model_path, weights_path=None):
     :rtype: Darknet
     """
     device = torch.device(
-        "cuda" if torch.cuda.is_available() else "cpu"
+        "cuda:0" if torch.cuda.is_available() else "cpu"
     )  # Select device for inference
     model = Darknet(model_path).to(device)
 

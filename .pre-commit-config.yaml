@@ -4,7 +4,7 @@
 
 # Don't run pre-commit on files under any thirdparty/, third_party/, third-party/, etc. sub-folders
 # But will run on directories like third/.../../party/, etc.
-exclude: (?i)^(.*third[^/]*party/.*|.*\.ts|.*\.trt)$
+exclude: (?i)^(.*third[^/]*party/.*|.*\.ts|.*\.trt|.*environment.*)$
 
 repos:
     - repo: https://github.com/sirosen/check-jsonschema # check-jsonschema is a github actions and workflows verifier.

@@ -132,7 +132,7 @@ def run():
         "--seed",
         type=int,
         default=-1,
-        help="Makes results reproducable. Set -1 to disable.",
+        help="Makes results reproducible. Set -1 to disable.",
     )
     parser.add_argument(
         "--batch-size",
@@ -267,7 +267,7 @@ def run():
                 ),
             ]
         )
-    
+
     # use args.train_fraction to generate evenly spaced indices that correspond to the fraction of the dataset
     train_indices = torch.linspace(
         0,

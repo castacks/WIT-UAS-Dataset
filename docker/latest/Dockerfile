@@ -92,11 +92,14 @@ RUN perl -pi -e 's/(?<!c10::)optional</c10::optional</g; s/(?<!c10::)nullopt/c10
 COPY --from=home-folder-config ./.screenrc $HOME_FOLDER/
 COPY --from=home-folder-config ./.tmux.conf $HOME_FOLDER/
 
-# albumentations and wandb
-RUN pip3 install albumentations terminaltables torchsummary wandb
+# albumentations, wandb, SAHI, and YOLOs
+RUN pip3 install albumentations terminaltables torchsummary wandb sahi yolov5 yolov8
 
-# Install open3d and pre-commit for convenience
-RUN pip3 install open3d pre-commit
+# Install pre-commit for convenience
+RUN pip3 install pre-commit
+
+# git set safe directory
+RUN git config --global --add safe.directory "*"
 
 # nvidia-container-runtime
 ENV NVIDIA_VISIBLE_DEVICES \

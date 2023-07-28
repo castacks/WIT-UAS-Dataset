@@ -20,12 +20,14 @@ from tools import wandb_logger
 from tools.dataset import HITUAVDatasetTest
 from model import load_model
 from parse_config import parse_data_config
-from utils import ap_per_class
-from utils import get_batch_statistics
-from utils import load_classes
-from utils import non_max_suppression
-from utils import print_environment_info
-from utils import xywh2xyxy
+from utils import (
+    ap_per_class,
+    get_batch_statistics,
+    load_classes,
+    non_max_suppression,
+    print_environment_info,
+    xywh2xyxy,
+)
 
 
 def evaluate_model_file(
@@ -86,6 +88,7 @@ def evaluate_model_file(
         conf_thres,
         nms_thres,
         verbose,
+        1,
     )
     return metrics_output
 
@@ -229,14 +232,14 @@ def run():
         "-w",
         "--weights",
         type=str,
-        default="yolo_logs/2022_11_01__01_56_27/yolov3_ckpt_900.pth",
+        default="./model/yolo/devansh_desktop_all_yolov3_ckpt_370.pth",
         help="Path to weights or checkpoint file (.weights or .pth)",
     )
     parser.add_argument(
         "-d",
         "--data",
         type=str,
-        default="hit.data",
+        default="dataset.cfg",
         help="Path to data config file (.data)",
     )
     parser.add_argument(
@@ -276,11 +279,12 @@ def run():
     print(f"Command line arguments: {args}")
 
     # Load configuration from data file
-    data_config = parse_data_config("dataset.cfg")
+    data_config = parse_data_config(args.data)
     # Path to file containing all images for validation
     valid_path = "./"
     class_names = load_classes(data_config["names"])  # List of class names
 
+    wandb_logger.init()
     precision, recall, AP, f1, ap_class = evaluate_model_file(
         args.model,
         args.weights,
