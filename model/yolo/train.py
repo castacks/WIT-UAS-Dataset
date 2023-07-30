@@ -267,7 +267,7 @@ def run():
                 ),
             ]
         )
-    
+
     # use args.train_fraction to generate evenly spaced indices that correspond to the fraction of the dataset
     train_indices = torch.linspace(
         0,
