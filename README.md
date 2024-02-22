@@ -1,10 +1,10 @@
-# WIT UAS Dataset
+# WIT-UAS: A Wildland-fire Infrared Thermal Dataset to Detect Crew Assets From Aerial Views
 
 ## About
 
 ![about](./figures/about.png)
 
-- This dataset contains bounding box annotated Wildland-fire Infrared Thermal (WIT) images for crew assets detection with Unmanned Aerial Systems (UAS), it is captured during prescribed burns
+- This dataset contains bounding box annotated Wildland-fire Infrared Thermal (WIT) images for crew assets detection with Unmanned Aerial Systems (UAS). It is captured during prescribed burns. The associated paper can be found [here](https://arxiv.org/pdf/2312.09159.pdf).
 
 - [Available Labels](./dataset.classes)
 
@@ -91,3 +91,18 @@ You may need to adjust the batch size according to your GPU memory by using the 
    ```Shell
    ./scripts/setup.sh
    ```
+
+## Citation
+If you find this repository useful for your work, please cite the following paper:
+
+```bibtex
+@INPROCEEDINGS{jong2023wit,
+  author={Jong, Andrew and Yu, Mukai and Dhrafani, Devansh and Kailas, Siva and Moon, Brady and Sycara, Katia and Scherer, Sebastian},
+  booktitle={2023 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)}, 
+  title={WIT-UAS: A Wildland-Fire Infrared Thermal Dataset to Detect Crew Assets from Aerial Views}, 
+  year={2023},
+  pages={11464-11471},
+  url = {https://arxiv.org/pdf/2312.09159},
+  doi={10.1109/IROS55552.2023.10341683}
+}
+```
