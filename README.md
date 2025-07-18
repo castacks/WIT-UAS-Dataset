@@ -4,9 +4,16 @@
 
 ![about](./figures/about.png)
 
-- This dataset contains bounding box annotated Wildland-fire Infrared Thermal (WIT) images for crew assets detection with Unmanned Aerial Systems (UAS). It is captured during prescribed burns. The associated paper can be found [here](https://arxiv.org/pdf/2312.09159.pdf). The labeled thermal data can be downloaded [here](https://drive.google.com/file/d/13wUe6-g5nTDPgCYNLRAw8CXKID6JpRfF/view?usp=drive_link). For access to the ROS bags, please email ajong@andrew.cmu.edu.
+- This dataset contains bounding box annotated Wildland-fire Infrared Thermal (WIT) images for crew assets detection with Unmanned Aerial Systems (UAS). It is captured during prescribed burns. The associated paper can be found [here](https://arxiv.org/pdf/2312.09159.pdf).
 
 - [Available Labels](./dataset.classes)
+
+## Download Dataset
+
+```bash
+pip install minio
+python scripts/download_data.py
+```
 
 ## Test Object Detection
 
